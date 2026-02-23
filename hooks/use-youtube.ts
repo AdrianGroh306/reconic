@@ -1,28 +1,19 @@
-// React Query hooks for YouTube data - stub
+import { useQuery } from "@tanstack/react-query"
+import type { YouTubeVideoResult, YouTubeChannelResult } from "@/lib/youtube"
 
-import { useQuery } from "@tanstack/react-query";
-import { searchVideos, getVideoDetails, getChannelDetails } from "@/lib/youtube";
-
-export function useSearchVideos(query: string) {
-  return useQuery({
-    queryKey: ["youtube", "search", query],
-    queryFn: () => searchVideos(query),
-    enabled: !!query,
-  });
-}
-
-export function useVideoDetails(videoId: string) {
-  return useQuery({
-    queryKey: ["youtube", "video", videoId],
-    queryFn: () => getVideoDetails(videoId),
-    enabled: !!videoId,
-  });
-}
-
-export function useChannelDetails(channelId: string) {
-  return useQuery({
-    queryKey: ["youtube", "channel", channelId],
-    queryFn: () => getChannelDetails(channelId),
-    enabled: !!channelId,
-  });
+export function useYouTubeSearch(query: string, type: "video" | "channel") {
+  return useQuery<YouTubeVideoResult[] | YouTubeChannelResult[]>({
+    queryKey: ["youtube", "search", type, query],
+    queryFn: async () => {
+      const params = new URLSearchParams({ q: query, type })
+      const res = await fetch(`/api/youtube/search?${params.toString()}`)
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err?.error ?? `Request failed: ${res.status}`)
+      }
+      return res.json()
+    },
+    enabled: query.trim().length >= 2,
+    staleTime: 1000 * 60 * 5,
+  })
 }
