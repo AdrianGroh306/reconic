@@ -15,14 +15,14 @@ export function VideoCard({ video }: { video: YouTubeVideoResult }) {
     <Card>
       <CardContent className="flex gap-4 p-4">
         {video.thumbnail && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={video.thumbnail}
-            alt={video.title}
-            width={160}
-            height={90}
-            className="rounded shrink-0 object-cover"
-          />
+          <div className="w-[160px] aspect-video shrink-0 rounded overflow-hidden bg-muted">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={video.thumbnail}
+              alt={video.title}
+              className="h-full w-full object-cover"
+            />
+          </div>
         )}
         <div className="min-w-0">
           <p className="font-medium leading-snug line-clamp-2">{video.title}</p>

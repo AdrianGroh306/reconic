@@ -1,0 +1,14 @@
+[     964ms] [ERROR] Base UI: A component that acts as a button expected a native <button> because the `nativeButton` prop is true. Rendering a non-<button> removes native button semantics, which can impact forms and accessibility. Use a real <button> in the `render` prop, or set `nativeButton` to `false`.
+    at Button (http://localhost:3000/_next/static/chunks/_49cb0f68._.js:163:214)
+    at http://localhost:3000/_next/static/chunks/_49cb0f68._.js:325:230
+    at Array.map (<anonymous>)
+    at Sidebar (http://localhost:3000/_next/static/chunks/_49cb0f68._.js:323:36)
+    at RootLayout (about://React/Server/file:///Users/adriangroh/Documents/github-projects/reconic/.next/dev/server/chunks/ssr/%5Broot-of-the-server%5D__b5836601._.js?0:203:280) @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:3127
+[     968ms] [ERROR] Base UI: A component that acts as a button expected a native <button> because the `nativeButton` prop is true. Rendering a non-<button> removes native button semantics, which can impact forms and accessibility. Use a real <button> in the `render` prop, or set `nativeButton` to `false`.
+    at Button (http://localhost:3000/_next/static/chunks/_49cb0f68._.js:163:214)
+    at ProjectsSection (http://localhost:3000/_next/static/chunks/_53f7231a._.js:1416:231)
+    at OverviewPage (about://React/Server/file:///Users/adriangroh/Documents/github-projects/reconic/.next/dev/server/chunks/ssr/%5Broot-of-the-server%5D__06ba610f._.js?10:124:264) @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:3127
+[    1027ms] [ERROR] Base UI: A component that acts as a button expected a native <button> because the `nativeButton` prop is true. Rendering a non-<button> removes native button semantics, which can impact forms and accessibility. Use a real <button> in the `render` prop, or set `nativeButton` to `false`.
+    at Button (http://localhost:3000/_next/static/chunks/_49cb0f68._.js:163:214)
+    at ChannelSection (http://localhost:3000/_next/static/chunks/_53f7231a._.js:459:223)
+    at OverviewPage (about://React/Server/file:///Users/adriangroh/Documents/github-projects/reconic/.next/dev/server/chunks/ssr/%5Broot-of-the-server%5D__06ba610f._.js?9:119:264) @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:3127

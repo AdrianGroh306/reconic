@@ -1,14 +1,55 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Youtube, CheckCircle2, LogOut, Loader2 } from "lucide-react"
+import { Youtube, CheckCircle2, LogOut, Loader2, Users, Video } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import type { Session } from "@supabase/supabase-js"
+
+type ChannelInfo = {
+  name: string
+  avatar: string
+  subscriberCount?: string
+  videoCount?: string
+}
+
+function formatCount(n: string): string {
+  const num = parseInt(n)
+  if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(1)}M`
+  if (num >= 1_000) return `${Math.round(num / 1_000)}K`
+  return n
+}
+
+async function fetchChannelInfo(token: string): Promise<ChannelInfo | null> {
+  try {
+    const res = await fetch(
+      "https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&mine=true",
+      { headers: { Authorization: `Bearer ${token}` } }
+    )
+    if (!res.ok) return null
+    const data = await res.json()
+    const item = data.items?.[0]
+    if (!item) return null
+    const snippet = item.snippet as Record<string, unknown>
+    const stats = item.statistics as Record<string, unknown>
+    const thumbs = snippet.thumbnails as Record<string, { url: string }>
+    return {
+      name: snippet.title as string,
+      avatar:
+        thumbs?.high?.url ?? thumbs?.medium?.url ?? thumbs?.default?.url ?? "",
+      subscriberCount: stats?.subscriberCount as string | undefined,
+      videoCount: stats?.videoCount as string | undefined,
+    }
+  } catch {
+    return null
+  }
+}
 
 export default function SettingsPage() {
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
+  const [channelInfo, setChannelInfo] = useState<ChannelInfo | null>(null)
   const [connecting, setConnecting] = useState(false)
 
   useEffect(() => {
@@ -16,12 +57,20 @@ export default function SettingsPage() {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session)
       setLoading(false)
+      if (data.session?.provider_token) {
+        fetchChannelInfo(data.session.provider_token).then(setChannelInfo)
+      }
     })
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, s) => {
       setSession(s)
+      if (s?.provider_token) {
+        fetchChannelInfo(s.provider_token).then(setChannelInfo)
+      } else {
+        setChannelInfo(null)
+      }
     })
 
     return () => subscription.unsubscribe()
@@ -45,10 +94,10 @@ export default function SettingsPage() {
   async function handleDisconnect() {
     const supabase = createClient()
     await supabase.auth.signOut()
+    setChannelInfo(null)
   }
 
   const isConnected = !!session?.provider_token
-  const userName = session?.user?.user_metadata?.full_name ?? session?.user?.email
 
   return (
     <div className="space-y-8">
@@ -71,22 +120,37 @@ export default function SettingsPage() {
             <span className="text-sm">Loading…</span>
           </div>
         ) : isConnected ? (
-          <div className="flex items-center justify-between">
+          <div className="flex items-start justify-between gap-4">
             <div className="flex items-center gap-3">
-              {session?.user?.user_metadata?.avatar_url && (
+              {channelInfo?.avatar && (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={session.user.user_metadata.avatar_url}
-                  alt={userName ?? "User"}
-                  className="h-9 w-9 rounded-full"
+                  src={channelInfo.avatar}
+                  alt={channelInfo.name}
+                  className="h-12 w-12 rounded-full object-cover shrink-0"
                 />
               )}
-              <div>
+              <div className="space-y-1.5">
                 <div className="flex items-center gap-1.5">
-                  <CheckCircle2 className="h-4 w-4 text-green-500" />
-                  <span className="font-medium text-sm">{userName}</span>
+                  <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
+                  <span className="font-semibold">
+                    {channelInfo?.name ?? session?.user?.user_metadata?.full_name}
+                  </span>
                 </div>
-                <p className="text-xs text-muted-foreground">Connected</p>
+                <div className="flex flex-wrap gap-2">
+                  {channelInfo?.subscriberCount && (
+                    <Badge variant="secondary" className="gap-1">
+                      <Users className="h-3 w-3" />
+                      {formatCount(channelInfo.subscriberCount)} subscribers
+                    </Badge>
+                  )}
+                  {channelInfo?.videoCount && (
+                    <Badge variant="secondary" className="gap-1">
+                      <Video className="h-3 w-3" />
+                      {parseInt(channelInfo.videoCount).toLocaleString()} videos
+                    </Badge>
+                  )}
+                </div>
               </div>
             </div>
             <Button variant="outline" size="sm" onClick={handleDisconnect}>

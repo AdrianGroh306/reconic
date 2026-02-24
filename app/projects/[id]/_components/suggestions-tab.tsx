@@ -61,7 +61,7 @@ export function SuggestionsTab({ project }: { project: Project }) {
           Get title ideas, thumbnail concepts, hook variants, and a longform script outline.
         </p>
         <div className="mt-4 flex items-center gap-3">
-          <Select value={duration} onValueChange={setDuration}>
+          <Select value={duration} onValueChange={(val) => { if (val) setDuration(val) }}>
             <SelectTrigger className="w-32">
               <SelectValue placeholder="Duration" />
             </SelectTrigger>
@@ -101,7 +101,7 @@ export function SuggestionsTab({ project }: { project: Project }) {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <Select value={duration} onValueChange={setDuration}>
+        <Select value={duration} onValueChange={(val) => { if (val) setDuration(val) }}>
           <SelectTrigger className="w-28 h-8 text-sm">
             <SelectValue placeholder="Duration" />
           </SelectTrigger>

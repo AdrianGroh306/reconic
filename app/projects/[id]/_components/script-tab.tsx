@@ -37,7 +37,8 @@ export function ScriptTab({ project }: { project: Project }) {
     localStorage.setItem(storageKey, val)
   }
 
-  function handleDurationChange(val: string) {
+  function handleDurationChange(val: string | null) {
+    if (!val) return
     setTargetDuration(val)
     localStorage.setItem(durationKey, val)
   }

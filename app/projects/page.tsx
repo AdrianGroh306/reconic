@@ -90,15 +90,15 @@ export default function ProjectsPage() {
               onClick={() => router.push(`/projects/${project.id}`)}
             >
               {/* Thumbnail area */}
-              <div className="aspect-video w-full bg-muted">
+              <div className="aspect-video w-full bg-muted relative overflow-hidden">
                 {thumbnails[project.id] ? (
                   <img
                     src={thumbnails[project.id]}
                     alt={project.title}
-                    className="h-full w-full object-cover"
+                    className="absolute inset-0 h-full w-full object-cover"
                   />
                 ) : (
-                  <div className="flex h-full w-full items-center justify-center">
+                  <div className="absolute inset-0 flex items-center justify-center">
                     <ImageIcon className="h-8 w-8 text-muted-foreground/30" />
                   </div>
                 )}
@@ -108,15 +108,17 @@ export default function ProjectsPage() {
                 <div className="flex items-start justify-between gap-2">
                   <CardTitle className="text-base leading-snug">{project.title}</CardTitle>
                   <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 shrink-0 text-muted-foreground"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
+                    <DropdownMenuTrigger
+                      render={
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 shrink-0 text-muted-foreground"
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      }
+                    >
+                      <MoreVertical className="h-4 w-4" />
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
                       <DropdownMenuItem

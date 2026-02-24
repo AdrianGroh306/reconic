@@ -16,34 +16,32 @@ function VideoCard({ video }: { video: YouTubeVideoResult }) {
 
   return (
     <Link href={`https://www.youtube.com/watch?v=${video.id}`} target="_blank" rel="noopener noreferrer">
-      <Card className="hover:bg-muted/50 transition-colors">
-        <CardContent className="flex gap-4 p-4">
+      <Card className="hover:bg-muted/50 transition-colors overflow-hidden">
+        <div className="aspect-video w-full bg-muted relative overflow-hidden">
           {video.thumbnail && (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={video.thumbnail}
               alt={video.title}
-              width={200}
-              height={113}
-              className="rounded shrink-0 object-cover"
+              className="absolute inset-0 h-full w-full object-cover"
             />
           )}
-          <div className="min-w-0">
-            <p className="font-medium text-sm line-clamp-2 leading-snug">{video.title}</p>
-            <div className="flex items-center gap-2 flex-wrap mt-1.5">
-              <p className="text-xs text-muted-foreground">{date}</p>
-              {video.duration && (
-                <Badge variant="secondary" className="text-xs px-1.5 py-0 font-mono">
-                  {video.duration}
-                </Badge>
-              )}
-            </div>
-            {video.viewCount && (
-              <p className="text-xs text-muted-foreground mt-1">
-                {parseInt(video.viewCount).toLocaleString()} views
-              </p>
+        </div>
+        <CardContent className="p-3">
+          <p className="font-medium text-sm line-clamp-2 leading-snug">{video.title}</p>
+          <div className="flex items-center gap-2 flex-wrap mt-1.5">
+            <p className="text-xs text-muted-foreground">{date}</p>
+            {video.duration && (
+              <Badge variant="secondary" className="text-xs px-1.5 py-0 font-mono">
+                {video.duration}
+              </Badge>
             )}
           </div>
+          {video.viewCount && (
+            <p className="text-xs text-muted-foreground mt-1">
+              {parseInt(video.viewCount).toLocaleString()} views
+            </p>
+          )}
         </CardContent>
       </Card>
     </Link>
@@ -79,7 +77,7 @@ export function ChannelVideoGrid({ videos }: { videos: YouTubeVideoResult[] }) {
           No longform videos found.
         </p>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {filtered.map((v) => (
             <VideoCard key={v.id} video={v} />
           ))}

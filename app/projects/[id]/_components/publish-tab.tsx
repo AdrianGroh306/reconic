@@ -10,7 +10,7 @@ import {
   uploadVideo,
   setThumbnail,
 } from "@/lib/youtube-upload"
-import { Button } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import {
@@ -104,9 +104,9 @@ export function PublishTab({ project }: Props) {
         <p className="text-sm text-muted-foreground">
           Connect your YouTube account to publish videos from Reconic.
         </p>
-        <Button asChild variant="outline">
-          <Link href="/settings">Go to Settings</Link>
-        </Button>
+        <Link href="/settings" className={buttonVariants({ variant: "outline" })}>
+          Go to Settings
+        </Link>
       </div>
     )
   }
@@ -121,16 +121,15 @@ export function PublishTab({ project }: Props) {
         <p className="text-sm text-muted-foreground">
           Your video is live on YouTube.
         </p>
-        <Button asChild>
-          <a
-            href={`https://youtu.be/${state.videoId}`}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <ExternalLink className="mr-2 h-4 w-4" />
-            View on YouTube
-          </a>
-        </Button>
+        <a
+          href={`https://youtu.be/${state.videoId}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={buttonVariants()}
+        >
+          <ExternalLink className="mr-2 h-4 w-4" />
+          View on YouTube
+        </a>
         <div>
           <Button
             variant="ghost"

@@ -2,13 +2,14 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Search, FolderOpen, Settings, Sun, Moon, Monitor } from "lucide-react"
+import { Search, FolderOpen, Settings, Sun, Moon, Monitor, LayoutDashboard } from "lucide-react"
 import { useTheme } from "next-themes"
-import { Button } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
 
 const navItems = [
+  { href: "/overview", label: "Overview", icon: LayoutDashboard },
   { href: "/projects", label: "Projects", icon: FolderOpen },
   { href: "/dashboard", label: "Research", icon: Search },
   { href: "/settings", label: "Settings", icon: Settings },
@@ -46,17 +47,17 @@ export function Sidebar() {
         {navItems.map((item) => {
           const isActive = pathname.startsWith(item.href)
           return (
-            <Button
+            <Link
               key={item.href}
-              variant={isActive ? "secondary" : "ghost"}
-              className={cn("justify-start gap-2.5 h-9 px-3 text-sm")}
-              asChild
+              href={item.href}
+              className={cn(
+                buttonVariants({ variant: isActive ? "secondary" : "ghost" }),
+                "justify-start gap-2.5 h-9 px-3 text-sm"
+              )}
             >
-              <Link href={item.href}>
-                <item.icon className="h-4 w-4 shrink-0" />
-                {item.label}
-              </Link>
-            </Button>
+              <item.icon className="h-4 w-4 shrink-0" />
+              {item.label}
+            </Link>
           )
         })}
       </nav>
