@@ -21,6 +21,7 @@ export function VideoCard({ video }: { video: YouTubeVideoResult }) {
               src={video.thumbnail}
               alt={video.title}
               className="h-full w-full object-cover"
+              referrerPolicy="no-referrer"
             />
           </div>
         )}
