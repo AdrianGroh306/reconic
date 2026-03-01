@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { BookmarkX, Bookmark } from "lucide-react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { loadFavoritedChannels, removeFavoritedChannel } from "@/lib/channels"
+import { fetchFavoritedChannels, deleteFavoritedChannel } from "@/lib/channels"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 
@@ -18,12 +18,12 @@ export default function ChannelsPage() {
   const queryClient = useQueryClient()
   const { data: channels = [] } = useQuery({
     queryKey: ["favorited-channels"],
-    queryFn: loadFavoritedChannels,
-    staleTime: Infinity,
+    queryFn: fetchFavoritedChannels,
+    staleTime: 30 * 1000,
   })
 
-  function handleRemove(id: string) {
-    removeFavoritedChannel(id)
+  async function handleRemove(channelId: string) {
+    await deleteFavoritedChannel(channelId)
     queryClient.invalidateQueries({ queryKey: ["favorited-channels"] })
   }
 
@@ -51,12 +51,12 @@ export default function ChannelsPage() {
                 variant="ghost"
                 size="icon"
                 className="absolute top-2 right-2 h-7 w-7 z-10"
-                onClick={() => handleRemove(channel.id)}
+                onClick={() => handleRemove(channel.channelId)}
                 title="Remove channel"
               >
                 <BookmarkX className="h-4 w-4 text-muted-foreground" />
               </Button>
-              <Link href={`/channels/${channel.id}`}>
+              <Link href={`/channels/${channel.channelId}`}>
                 <CardContent className="flex gap-4 p-4">
                   {channel.thumbnail ? (
                     // eslint-disable-next-line @next/next/no-img-element

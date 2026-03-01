@@ -15,6 +15,7 @@ export type YouTubeAccount = {
   avg_video_duration_seconds: number | null
   upload_frequency: string | null
   top_tags: string[] | null
+  recent_video_titles: string[] | null
   last_synced_at: string
 }
 

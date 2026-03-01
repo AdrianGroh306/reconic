@@ -91,7 +91,7 @@ export async function POST() {
 
     // Use AI to detect niche and content style from video titles
     const { object: profile } = await generateObject({
-      model: google("gemini-2.0-flash"),
+      model: google("gemini-2.5-flash"),
       schema: channelProfileSchema,
       prompt: `Analyze this YouTube channel based on their recent video titles and determine their niche, content style, and target audience.
 
@@ -111,6 +111,7 @@ Frequent keywords: ${topTags.join(", ")}`,
         avg_video_duration_seconds: avgDuration,
         upload_frequency: uploadFrequency,
         top_tags: topTags,
+        recent_video_titles: titles,
         last_synced_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       })

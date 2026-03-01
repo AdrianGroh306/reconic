@@ -20,7 +20,7 @@ async function getChannelContext(): Promise<string> {
 
     const { data: account } = await supabase
       .from("youtube_accounts")
-      .select("channel_name, niche, avg_video_duration_seconds, upload_frequency, top_tags, subscriber_count")
+      .select("channel_name, niche, avg_video_duration_seconds, upload_frequency, top_tags, subscriber_count, recent_video_titles")
       .eq("user_id", user.id)
       .limit(1)
       .single()
@@ -36,6 +36,9 @@ async function getChannelContext(): Promise<string> {
     }
     if (account.upload_frequency) parts.push(`- Upload cadence: ${account.upload_frequency}`)
     if (account.top_tags?.length) parts.push(`- Recurring topics/keywords: ${account.top_tags.join(", ")}`)
+    if (account.recent_video_titles?.length) {
+      parts.push(`- Recent videos (use to avoid repetition, match naming style, identify gaps):\n${account.recent_video_titles.slice(0, 20).map((t: string, i: number) => `  ${i + 1}. ${t}`).join("\n")}`)
+    }
 
     return parts.join("\n")
   } catch {

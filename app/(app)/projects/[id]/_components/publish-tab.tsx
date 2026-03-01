@@ -5,7 +5,7 @@ import Link from "next/link"
 import { ExternalLink, Loader2, Upload, Youtube } from "lucide-react"
 import { useQuery } from "@tanstack/react-query"
 import { getYouTubeAccessToken } from "@/lib/youtube-account"
-import { getProjectThumbnail, type Project } from "@/lib/projects"
+import { type Project } from "@/lib/projects"
 import {
   initiateUpload,
   uploadVideo,
@@ -65,7 +65,7 @@ export function PublishTab({ project }: Props) {
         setState({ kind: "uploading", progress: pct })
       })
 
-      const thumbnail = getProjectThumbnail(project.id)
+      const thumbnail = project.thumbnail ?? null
       if (thumbnail) {
         try {
           await setThumbnail(accessToken, videoId, thumbnail)

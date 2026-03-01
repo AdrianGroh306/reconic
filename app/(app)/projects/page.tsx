@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useQueryClient } from "@tanstack/react-query"
 import { Plus, FolderOpen, MoreVertical, Trash2, ExternalLink, ImageIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -21,19 +21,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { loadProjects, deleteProject, getProjectThumbnail, computeStatus, STATUS_CONFIG, type Project } from "@/lib/projects"
+import { removeProject, computeStatus, STATUS_CONFIG, type Project } from "@/lib/projects"
+import { useProjects } from "@/hooks/use-projects"
 import { Badge } from "@/components/ui/badge"
 import { NewProjectDialog } from "./_components/new-project-dialog"
-
-function loadProjectsWithThumbnails() {
-  const all = loadProjects()
-  const thumbs: Record<string, string> = {}
-  for (const p of all) {
-    const t = getProjectThumbnail(p.id)
-    if (t) thumbs[p.id] = t
-  }
-  return { projects: all, thumbnails: thumbs }
-}
 
 export default function ProjectsPage() {
   const router = useRouter()
@@ -41,14 +32,8 @@ export default function ProjectsPage() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
 
-  const { data } = useQuery({
-    queryKey: ["projects"],
-    queryFn: loadProjectsWithThumbnails,
-    staleTime: Infinity,
-  })
-
-  const projects = data?.projects ?? []
-  const thumbnails = data?.thumbnails ?? {}
+  const { data } = useProjects()
+  const projects = data ?? []
 
   function handleCreate(project: Project) {
     queryClient.invalidateQueries({ queryKey: ["projects"] })
@@ -56,9 +41,9 @@ export default function ProjectsPage() {
     router.push(`/projects/${project.id}`)
   }
 
-  function confirmDelete() {
+  async function confirmDelete() {
     if (!deleteTarget) return
-    deleteProject(deleteTarget)
+    await removeProject(deleteTarget)
     queryClient.invalidateQueries({ queryKey: ["projects"] })
     setDeleteTarget(null)
   }
@@ -94,9 +79,9 @@ export default function ProjectsPage() {
               onClick={() => router.push(`/projects/${project.id}`)}
             >
               <div className="aspect-video w-full bg-muted relative overflow-hidden">
-                {thumbnails[project.id] ? (
+                {project.thumbnail ? (
                   <img
-                    src={thumbnails[project.id]}
+                    src={project.thumbnail}
                     alt={project.title}
                     className="absolute inset-0 h-full w-full object-cover"
                   />

@@ -2,16 +2,13 @@
 
 import { useRef, useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { ChevronLeft, Upload, Clapperboard, Scissors, CheckCircle, Pencil, ChevronDown } from "lucide-react"
+import { ChevronLeft, Upload, Pencil, ChevronDown, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import {
-  getProjectThumbnail,
-  setProjectThumbnail,
-  updateProject,
+  patchProject,
   computeStatus,
-  STATUS_CONFIG,
   type Project,
+  type ProjectStatusLabel,
 } from "@/lib/projects"
 
 interface ProjectHeaderProps {
@@ -19,37 +16,38 @@ interface ProjectHeaderProps {
   onUpdate: () => void
 }
 
-const MANUAL_PHASES: Array<{
-  value: 'filming' | 'editing' | 'published'
-  label: string
-  icon: React.ReactNode
-}> = [
-  { value: 'filming',   label: 'Filming',   icon: <Clapperboard className="h-3 w-3" /> },
-  { value: 'editing',   label: 'Editing',   icon: <Scissors className="h-3 w-3" /> },
-  { value: 'published', label: 'Published', icon: <CheckCircle className="h-3 w-3" /> },
+const WORKFLOW_STEPS: Array<{ value: ProjectStatusLabel; label: string }> = [
+  { value: "idea",      label: "Idea" },
+  { value: "scripted",  label: "Scripted" },
+  { value: "filming",   label: "Filming" },
+  { value: "editing",   label: "Editing" },
+  { value: "published", label: "Published" },
 ]
+
+const STEP_ORDER: ProjectStatusLabel[] = ["idea", "scripted", "filming", "editing", "published"]
+
+const MANUAL_STATUS_MAP: Partial<Record<ProjectStatusLabel, Project["status"]>> = {
+  filming:   "filming",
+  editing:   "editing",
+  published: "published",
+}
 
 export function ProjectHeader({ project, onUpdate }: ProjectHeaderProps) {
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const [thumbnail, setThumbnail] = useState<string | null>(null)
   const [hovering, setHovering] = useState(false)
   const [notesOpen, setNotesOpen] = useState(false)
   const [notes, setNotes] = useState(project.notes ?? "")
-  const [editingTitle, setEditingTitle] = useState(false)
+  const [editingVideoTitle, setEditingVideoTitle] = useState(false)
   const [editingTopic, setEditingTopic] = useState(false)
-  const [titleDraft, setTitleDraft] = useState(project.title)
+  const [videoTitleDraft, setVideoTitleDraft] = useState(project.chosenTitle ?? project.title)
   const [topicDraft, setTopicDraft] = useState(project.topic)
 
   useEffect(() => {
-    setThumbnail(getProjectThumbnail(project.id))
-  }, [project.id])
-
-  useEffect(() => {
     setNotes(project.notes ?? "")
-    setTitleDraft(project.title)
+    setVideoTitleDraft(project.chosenTitle ?? project.title)
     setTopicDraft(project.topic)
-  }, [project.id, project.notes, project.title, project.topic])
+  }, [project.id, project.notes, project.chosenTitle, project.title, project.topic])
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -57,38 +55,50 @@ export function ProjectHeader({ project, onUpdate }: ProjectHeaderProps) {
     const reader = new FileReader()
     reader.onload = () => {
       const base64 = reader.result as string
-      setProjectThumbnail(project.id, base64)
-      setThumbnail(base64)
+      patchProject(project.id, { thumbnail: base64 })
+      onUpdate()
     }
     reader.readAsDataURL(file)
     e.target.value = ""
   }
 
-  function handlePhaseClick(phase: 'filming' | 'editing' | 'published') {
-    const next = project.status === phase ? undefined : phase
-    updateProject(project.id, { status: next })
+  function handleStepClick(step: ProjectStatusLabel) {
+    if (step === "idea" || step === "scripted") {
+      patchProject(project.id, { status: undefined })
+    } else {
+      patchProject(project.id, { status: MANUAL_STATUS_MAP[step] })
+    }
     onUpdate()
   }
 
   function handleNotesBlur() {
-    updateProject(project.id, { notes })
+    patchProject(project.id, { notes })
     onUpdate()
   }
 
   const currentStatus = computeStatus(project)
-  const statusCfg = STATUS_CONFIG[currentStatus]
+  const currentIdx = STEP_ORDER.indexOf(currentStatus)
+
+  // What to display as the H1 — chosen title has priority, falls back to folder name
+  const displayTitle = project.chosenTitle ?? project.title
+  const isPlaceholder = !project.chosenTitle
 
   return (
     <div className="space-y-4">
-      <Button
-        variant="ghost"
-        size="sm"
-        className="-ml-2 text-muted-foreground"
-        onClick={() => router.push("/projects")}
-      >
-        <ChevronLeft className="mr-1 h-4 w-4" />
-        Projects
-      </Button>
+      {/* Breadcrumb back button — shows the internal folder name */}
+      <div className="flex items-center gap-1.5">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="-ml-2 text-muted-foreground"
+          onClick={() => router.push("/projects")}
+        >
+          <ChevronLeft className="mr-1 h-4 w-4" />
+          Projects
+        </Button>
+        <span className="text-muted-foreground/40 text-xs">/</span>
+        <span className="text-xs text-muted-foreground/60 truncate max-w-[200px]">{project.title}</span>
+      </div>
 
       <div className="flex items-start gap-5">
         {/* Thumbnail — left, 16:9 */}
@@ -99,10 +109,10 @@ export function ProjectHeader({ project, onUpdate }: ProjectHeaderProps) {
           onMouseEnter={() => setHovering(true)}
           onMouseLeave={() => setHovering(false)}
         >
-          {thumbnail ? (
+          {project.thumbnail ? (
             <>
               <img
-                src={thumbnail}
+                src={project.thumbnail}
                 alt="Project thumbnail"
                 className="h-full w-full object-cover"
               />
@@ -130,106 +140,115 @@ export function ProjectHeader({ project, onUpdate }: ProjectHeaderProps) {
         />
 
         {/* Right column */}
-        <div className="flex-1 min-w-0 flex flex-col justify-between gap-2">
-          <div className="space-y-1">
-            {editingTitle ? (
-              <input
-                autoFocus
-                className="text-2xl font-bold leading-tight bg-transparent border-b border-foreground/20 focus:border-foreground/60 outline-none w-full"
-                value={titleDraft}
-                onChange={(e) => setTitleDraft(e.target.value)}
-                onBlur={() => {
-                  const trimmed = titleDraft.trim()
-                  if (trimmed && trimmed !== project.title) {
-                    updateProject(project.id, { title: trimmed })
-                    onUpdate()
-                  }
-                  setEditingTitle(false)
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") e.currentTarget.blur()
-                  if (e.key === "Escape") { setTitleDraft(project.title); setEditingTitle(false) }
-                }}
-              />
-            ) : (
-              <h1
-                className="text-2xl font-bold leading-tight cursor-pointer hover:text-foreground/70 transition-colors"
-                onClick={() => setEditingTitle(true)}
-                title="Click to edit"
-              >
-                {project.title}
-              </h1>
-            )}
+        <div className="flex-1 min-w-0 flex flex-col gap-2">
 
-            {project.chosenTitle && (
-              <div className="flex items-center gap-2 text-sm">
-                <span className="text-muted-foreground shrink-0">Video title:</span>
-                <span className="font-medium text-foreground/80 truncate">{project.chosenTitle}</span>
-              </div>
-            )}
-
-            {editingTopic ? (
-              <input
-                autoFocus
-                className="text-sm text-muted-foreground bg-transparent border-b border-foreground/20 focus:border-foreground/60 outline-none w-full"
-                value={topicDraft}
-                onChange={(e) => setTopicDraft(e.target.value)}
-                onBlur={() => {
-                  const trimmed = topicDraft.trim()
-                  if (trimmed && trimmed !== project.topic) {
-                    updateProject(project.id, { topic: trimmed })
-                    onUpdate()
-                  }
-                  setEditingTopic(false)
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") e.currentTarget.blur()
-                  if (e.key === "Escape") { setTopicDraft(project.topic); setEditingTopic(false) }
-                }}
-              />
-            ) : (
-              <p
-                className="text-muted-foreground text-sm cursor-pointer hover:text-muted-foreground/50 transition-colors"
-                onClick={() => setEditingTopic(true)}
-                title="Click to edit"
-              >
-                {project.topic}
-              </p>
-            )}
-
-            {project.description && (
-              <p className="text-sm text-muted-foreground/70 line-clamp-2">{project.description}</p>
-            )}
-          </div>
-
-          {/* Status row */}
-          <div className="flex items-center gap-3 flex-wrap pt-1">
-            <Badge
-              variant="outline"
-              className={`text-xs font-medium ${statusCfg.className}`}
+          {/* Video title — primary H1 */}
+          {editingVideoTitle ? (
+            <input
+              autoFocus
+              className="text-2xl font-bold leading-tight bg-transparent border-b border-foreground/20 focus:border-foreground/60 outline-none w-full"
+              placeholder="Video title…"
+              value={videoTitleDraft}
+              onChange={(e) => setVideoTitleDraft(e.target.value)}
+              onBlur={() => {
+                const trimmed = videoTitleDraft.trim()
+                patchProject(project.id, { chosenTitle: trimmed || undefined })
+                onUpdate()
+                setEditingVideoTitle(false)
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") e.currentTarget.blur()
+                if (e.key === "Escape") {
+                  setVideoTitleDraft(project.chosenTitle ?? project.title)
+                  setEditingVideoTitle(false)
+                }
+              }}
+            />
+          ) : (
+            <h1
+              className={[
+                "text-2xl font-bold leading-tight cursor-pointer transition-colors",
+                isPlaceholder
+                  ? "text-muted-foreground hover:text-foreground"
+                  : "hover:text-foreground/70",
+              ].join(" ")}
+              onClick={() => {
+                setVideoTitleDraft(project.chosenTitle ?? project.title)
+                setEditingVideoTitle(true)
+              }}
+              title="Click to edit video title"
             >
-              {statusCfg.label}
-            </Badge>
+              {displayTitle}
+              {isPlaceholder && (
+                <span className="ml-2 text-sm font-normal text-muted-foreground/40">— click to set video title</span>
+              )}
+            </h1>
+          )}
 
-            <div className="flex items-center gap-1.5">
-              {MANUAL_PHASES.map((phase) => (
-                <Button
-                  key={phase.value}
-                  variant="outline"
-                  size="sm"
-                  className={[
-                    "h-7 px-2.5 gap-1.5 text-xs",
-                    project.status === phase.value
-                      ? "border-foreground/40 bg-foreground/5 font-semibold"
-                      : "text-muted-foreground",
-                  ].join(" ")}
-                  onClick={() => handlePhaseClick(phase.value)}
-                >
-                  {phase.icon}
-                  {phase.label}
-                </Button>
-              ))}
-            </div>
+          {/* Topic */}
+          {editingTopic ? (
+            <input
+              autoFocus
+              className="text-sm text-muted-foreground bg-transparent border-b border-foreground/20 focus:border-foreground/60 outline-none w-full"
+              value={topicDraft}
+              onChange={(e) => setTopicDraft(e.target.value)}
+              onBlur={() => {
+                const trimmed = topicDraft.trim()
+                if (trimmed && trimmed !== project.topic) {
+                  patchProject(project.id, { topic: trimmed })
+                  onUpdate()
+                }
+                setEditingTopic(false)
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") e.currentTarget.blur()
+                if (e.key === "Escape") { setTopicDraft(project.topic); setEditingTopic(false) }
+              }}
+            />
+          ) : (
+            <p
+              className="text-muted-foreground text-sm cursor-pointer hover:text-muted-foreground/50 transition-colors"
+              onClick={() => setEditingTopic(true)}
+              title="Click to edit topic"
+            >
+              {project.topic}
+            </p>
+          )}
+
+          {project.description && (
+            <p className="text-sm text-muted-foreground/60 line-clamp-2">{project.description}</p>
+          )}
+
+          {/* Workflow stepper */}
+          <div className="flex items-center gap-0 pt-1">
+            {WORKFLOW_STEPS.map((step, idx) => {
+              const isCompleted = idx < currentIdx
+              const isCurrent = idx === currentIdx
+              const isLast = idx === WORKFLOW_STEPS.length - 1
+
+              return (
+                <div key={step.value} className="flex items-center">
+                  <button
+                    type="button"
+                    onClick={() => handleStepClick(step.value)}
+                    className={[
+                      "flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium transition-colors",
+                      isCurrent
+                        ? "bg-foreground text-background"
+                        : isCompleted
+                          ? "bg-muted text-foreground/70 hover:bg-muted/80"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+                    ].join(" ")}
+                  >
+                    {isCompleted && <Check className="h-3 w-3" />}
+                    {step.label}
+                  </button>
+                  {!isLast && (
+                    <div className={`h-px w-4 shrink-0 ${idx < currentIdx ? "bg-foreground/30" : "bg-muted-foreground/20"}`} />
+                  )}
+                </div>
+              )
+            })}
           </div>
 
           {/* Notes section */}

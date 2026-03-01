@@ -3,14 +3,15 @@
 import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useQueryClient } from "@tanstack/react-query"
 import { ImageIcon, Plus } from "lucide-react"
-import { loadProjects, getProjectThumbnail, type Project } from "@/lib/projects"
+import { type Project } from "@/lib/projects"
+import { useProjects } from "@/hooks/use-projects"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { NewProjectDialog } from "@/app/(app)/projects/_components/new-project-dialog"
 
-function ProjectCard({ project, thumbnail }: { project: Project; thumbnail?: string }) {
+function ProjectCard({ project }: { project: Project }) {
   const router = useRouter()
   return (
     <Card
@@ -18,10 +19,10 @@ function ProjectCard({ project, thumbnail }: { project: Project; thumbnail?: str
       onClick={() => router.push(`/projects/${project.id}`)}
     >
       <div className="aspect-video w-full bg-muted relative overflow-hidden">
-        {thumbnail ? (
+        {project.thumbnail ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={thumbnail}
+            src={project.thumbnail}
             alt={project.title}
             className="absolute inset-0 h-full w-full object-cover"
           />
@@ -44,22 +45,8 @@ export function ProjectsSection() {
   const router = useRouter()
   const queryClient = useQueryClient()
 
-  const { data } = useQuery({
-    queryKey: ["projects"],
-    queryFn: () => {
-      const all = loadProjects()
-      const thumbs: Record<string, string> = {}
-      for (const p of all) {
-        const t = getProjectThumbnail(p.id)
-        if (t) thumbs[p.id] = t
-      }
-      return { projects: all, thumbnails: thumbs }
-    },
-    staleTime: Infinity,
-  })
-
-  const projects = (data?.projects ?? []).slice(0, 6)
-  const thumbnails = data?.thumbnails ?? {}
+  const { data } = useProjects()
+  const projects = (data ?? []).slice(0, 6)
 
   function handleProjectCreated(project: Project) {
     queryClient.invalidateQueries({ queryKey: ["projects"] })
@@ -95,7 +82,7 @@ export function ProjectsSection() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {projects.map((p) => (
-            <ProjectCard key={p.id} project={p} thumbnail={thumbnails[p.id]} />
+            <ProjectCard key={p.id} project={p} />
           ))}
         </div>
       )}

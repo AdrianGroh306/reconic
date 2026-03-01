@@ -1,4 +1,15 @@
+export type ProjectStatus = 'filming' | 'editing' | 'published'
 export type ProjectStatusLabel = 'published' | 'editing' | 'filming' | 'scripted' | 'idea'
+
+export type AiSuggestions = {
+  titles?: string[]
+  thumbnailConcepts?: string[]
+  scriptOutline?: string[]
+  hookVariants?: string[]
+  chapterMarkers?: string[]
+  savedConcepts?: string[]
+  generatedAt?: string
+}
 
 export type Project = {
   id: string
@@ -7,9 +18,14 @@ export type Project = {
   description: string
   createdAt: string
   chosenTitle?: string
-  status?: 'filming' | 'editing' | 'published'
+  status?: ProjectStatus
   notes?: string
   targetDuration?: number
+  thumbnail?: string
+  script?: string
+  aiSuggestions?: AiSuggestions
+  brollChecks?: Record<string, boolean>
+  editorNotes?: string
 }
 
 export const STATUS_CONFIG: Record<ProjectStatusLabel, { label: string; className: string }> = {
@@ -20,82 +36,38 @@ export const STATUS_CONFIG: Record<ProjectStatusLabel, { label: string; classNam
   published: { label: 'Published', className: 'bg-green-500/10 text-green-700 border-green-500/30 dark:text-green-500' },
 }
 
-let _userId = ""
-
-export function setCurrentUser(id: string): void {
-  _userId = id
-}
-
-function projectsKey() {
-  return _userId ? `reconic:${_userId}:projects` : "reconic:projects"
-}
-
-function thumbnailKey(id: string) {
-  return _userId ? `reconic:${_userId}:thumbnail:${id}` : `reconic:thumbnail:${id}`
-}
-
-export function scriptKey(projectId: string) {
-  return _userId ? `reconic:${_userId}:script:${projectId}` : `reconic:script:${projectId}`
-}
-
 export function computeStatus(project: Project): ProjectStatusLabel {
   if (project.status) return project.status
-  if (typeof window !== 'undefined') {
-    const script = localStorage.getItem(scriptKey(project.id)) ?? ''
-    const wordCount = script.trim().split(/\s+/).filter(Boolean).length
-    if (wordCount > 50) return 'scripted'
-  }
+  const script = project.script ?? ''
+  const wordCount = script.trim().split(/\s+/).filter(Boolean).length
+  if (wordCount > 50) return 'scripted'
   return 'idea'
 }
 
-export function loadProjects(): Project[] {
-  if (typeof window === "undefined") return []
-  try {
-    return JSON.parse(localStorage.getItem(projectsKey()) ?? "[]")
-  } catch {
-    return []
-  }
+// ─── API helpers ──────────────────────────────────────────────────────────────
+
+export async function createProject(
+  data: Pick<Project, 'title' | 'topic' | 'description'>
+): Promise<Project> {
+  const res = await fetch('/api/projects', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) throw new Error('Failed to create project')
+  return res.json()
 }
 
-export function saveProject(project: Project): void {
-  const all = loadProjects()
-  const idx = all.findIndex((p) => p.id === project.id)
-  if (idx >= 0) {
-    all[idx] = project
-  } else {
-    all.unshift(project)
-  }
-  localStorage.setItem(projectsKey(), JSON.stringify(all))
+export async function patchProject(id: string, changes: Partial<Project>): Promise<void> {
+  const res = await fetch(`/api/projects/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(changes),
+  })
+  if (!res.ok) throw new Error('Failed to update project')
 }
 
-export function deleteProject(id: string): void {
-  const all = loadProjects().filter((p) => p.id !== id)
-  localStorage.setItem(projectsKey(), JSON.stringify(all))
-  deleteProjectThumbnail(id)
-}
-
-export function getProjectThumbnail(id: string): string | null {
-  if (typeof window === "undefined") return null
-  return localStorage.getItem(thumbnailKey(id))
-}
-
-export function setProjectThumbnail(id: string, base64: string): void {
-  localStorage.setItem(thumbnailKey(id), base64)
-}
-
-export function deleteProjectThumbnail(id: string): void {
-  localStorage.removeItem(thumbnailKey(id))
-}
-
-export function getProject(id: string): Project | undefined {
-  return loadProjects().find((p) => p.id === id)
-}
-
-export function updateProject(id: string, changes: Partial<Project>): Project | null {
-  const all = loadProjects()
-  const idx = all.findIndex((p) => p.id === id)
-  if (idx < 0) return null
-  all[idx] = { ...all[idx], ...changes }
-  localStorage.setItem(projectsKey(), JSON.stringify(all))
-  return all[idx]
+export async function removeProject(id: string): Promise<void> {
+  const res = await fetch(`/api/projects/${id}`, { method: 'DELETE' })
+  if (!res.ok) throw new Error('Failed to delete project')
 }

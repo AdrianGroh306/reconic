@@ -5,7 +5,7 @@ import { Sparkles, Loader2, ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
-import { saveProject, type Project } from "@/lib/projects"
+import { createProject, type Project } from "@/lib/projects"
 
 interface NewProjectDialogProps {
   open: boolean
@@ -54,17 +54,15 @@ export function NewProjectDialog({ open, onClose, onCreate }: NewProjectDialogPr
       // AI parsing failed — fall back to raw input
     }
 
-    const project: Project = {
-      id: crypto.randomUUID(),
-      title,
-      topic,
-      description,
-      createdAt: new Date().toISOString(),
+    try {
+      const project = await createProject({ title, topic, description })
+      setVision("")
+      onCreate(project)
+    } catch {
+      setError("Couldn't create project. Please try again.")
+    } finally {
+      setLoading(false)
     }
-    saveProject(project)
-    onCreate(project)
-    setVision("")
-    setLoading(false)
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
@@ -102,24 +100,16 @@ export function NewProjectDialog({ open, onClose, onCreate }: NewProjectDialogPr
               disabled={loading}
               className="resize-none text-sm leading-relaxed"
             />
-            <p className="text-xs text-muted-foreground/60">
-              ⌘ + Enter to create
-            </p>
+            <p className="text-xs text-muted-foreground/60">⌘ + Enter to create</p>
           </div>
 
-          {error && (
-            <p className="text-sm text-destructive">{error}</p>
-          )}
+          {error && <p className="text-sm text-destructive">{error}</p>}
 
           <div className="flex justify-end gap-2 pt-1">
             <Button variant="outline" onClick={onClose} disabled={loading}>
               Cancel
             </Button>
-            <Button
-              onClick={handleCreate}
-              disabled={!vision.trim() || loading}
-              className="gap-2"
-            >
+            <Button onClick={handleCreate} disabled={!vision.trim() || loading} className="gap-2">
               {loading ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />

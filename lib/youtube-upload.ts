@@ -1,5 +1,5 @@
 const YOUTUBE_UPLOAD_URL =
-  "https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable"
+  "https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status"
 const YOUTUBE_THUMBNAIL_URL =
   "https://www.googleapis.com/upload/youtube/v3/thumbnails/set"
 

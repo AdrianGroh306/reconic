@@ -2,11 +2,10 @@
 
 import Link from "next/link"
 import { Bookmark, BookmarkCheck } from "lucide-react"
-import { useQueryClient } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { saveFavoritedChannel, removeFavoritedChannel, isFavoritedChannel } from "@/lib/channels"
-import { useState } from "react"
+import { fetchFavoritedChannels, addFavoritedChannel, deleteFavoritedChannel } from "@/lib/channels"
 import type { YouTubeChannelResult } from "@/lib/youtube"
 
 function formatSubscriberCount(count: string): string {
@@ -24,22 +23,27 @@ export function ChannelCard({
   showFavorite?: boolean
 }) {
   const queryClient = useQueryClient()
-  const [favorited, setFavorited] = useState(() => isFavoritedChannel(channel.id))
+  const { data: channels = [] } = useQuery({
+    queryKey: ["favorited-channels"],
+    queryFn: fetchFavoritedChannels,
+    staleTime: 30 * 1000,
+    enabled: showFavorite,
+  })
 
-  function toggleFavorite(e: React.MouseEvent) {
+  const favorited = channels.some((c) => c.channelId === channel.id)
+
+  async function toggleFavorite(e: React.MouseEvent) {
     e.preventDefault()
     e.stopPropagation()
     if (favorited) {
-      removeFavoritedChannel(channel.id)
-      setFavorited(false)
+      await deleteFavoritedChannel(channel.id)
     } else {
-      saveFavoritedChannel({
-        id: channel.id,
+      await addFavoritedChannel({
+        channelId: channel.id,
         title: channel.title,
-        thumbnail: channel.thumbnail ?? "",
-        subscriberCount: channel.subscriberCount,
+        thumbnail: channel.thumbnail ?? null,
+        subscriberCount: channel.subscriberCount ?? null,
       })
-      setFavorited(true)
     }
     queryClient.invalidateQueries({ queryKey: ["favorited-channels"] })
   }

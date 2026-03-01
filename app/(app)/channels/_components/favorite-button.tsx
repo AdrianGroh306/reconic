@@ -1,10 +1,9 @@
 "use client"
 
-import { useState } from "react"
 import { Bookmark, BookmarkCheck } from "lucide-react"
-import { useQueryClient } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { Button } from "@/components/ui/button"
-import { saveFavoritedChannel, removeFavoritedChannel, isFavoritedChannel } from "@/lib/channels"
+import { fetchFavoritedChannels, addFavoritedChannel, deleteFavoritedChannel } from "@/lib/channels"
 
 type Props = {
   channelId: string
@@ -15,15 +14,24 @@ type Props = {
 
 export function FavoriteButton({ channelId, channelTitle, channelThumbnail, subscriberCount }: Props) {
   const queryClient = useQueryClient()
-  const [favorited, setFavorited] = useState(() => isFavoritedChannel(channelId))
+  const { data: channels = [] } = useQuery({
+    queryKey: ["favorited-channels"],
+    queryFn: fetchFavoritedChannels,
+    staleTime: 30 * 1000,
+  })
 
-  function toggle() {
+  const favorited = channels.some((c) => c.channelId === channelId)
+
+  async function toggle() {
     if (favorited) {
-      removeFavoritedChannel(channelId)
-      setFavorited(false)
+      await deleteFavoritedChannel(channelId)
     } else {
-      saveFavoritedChannel({ id: channelId, title: channelTitle, thumbnail: channelThumbnail, subscriberCount })
-      setFavorited(true)
+      await addFavoritedChannel({
+        channelId,
+        title: channelTitle,
+        thumbnail: channelThumbnail,
+        subscriberCount: subscriberCount ?? null,
+      })
     }
     queryClient.invalidateQueries({ queryKey: ["favorited-channels"] })
   }
