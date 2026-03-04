@@ -7,6 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { patchProject, type Project } from "@/lib/projects"
+import { lineHash, parseBrollLines, targetWordsForDuration } from "@/lib/script-utils"
+import { toast } from "sonner"
 
 const DURATION_OPTIONS = [
   { value: "10", label: "10 min" },
@@ -14,30 +16,6 @@ const DURATION_OPTIONS = [
   { value: "30", label: "30 min" },
   { value: "45", label: "45 min" },
 ]
-
-const TARGET_WORDS: Record<string, number> = {
-  "10": 1300,
-  "20": 2600,
-  "30": 3900,
-  "45": 5850,
-}
-
-/** Stable hash for a broll line string (for checkbox state keying) */
-function lineHash(line: string): string {
-  let h = 0
-  for (let i = 0; i < line.length; i++) {
-    h = ((h << 5) - h + line.charCodeAt(i)) | 0
-  }
-  return String(h >>> 0)
-}
-
-/** Parse [B: ...] lines from script */
-function parseBrollLines(script: string): string[] {
-  return script
-    .split("\n")
-    .filter((line) => /^\[B:/i.test(line.trim()))
-    .map((line) => line.replace(/^\[B:/i, "").replace(/\]$/, "").trim())
-}
 
 export function ScriptTab({ project, onUpdate }: { project: Project; onUpdate: () => void }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -59,7 +37,7 @@ export function ScriptTab({ project, onUpdate }: { project: Project; onUpdate: (
     setScript(val)
     if (scriptTimer.current) clearTimeout(scriptTimer.current)
     scriptTimer.current = setTimeout(() => {
-      patchProject(project.id, { script: val }).then(onUpdate)
+      patchProject(project.id, { script: val }).then(onUpdate).catch(() => toast.error("Failed to save script"))
     }, 800)
   }
 
@@ -103,7 +81,7 @@ export function ScriptTab({ project, onUpdate }: { project: Project; onUpdate: (
       const next = { ...prev, [key]: !prev[key] }
       if (brollTimer.current) clearTimeout(brollTimer.current)
       brollTimer.current = setTimeout(() => {
-        patchProject(project.id, { brollChecks: next })
+        patchProject(project.id, { brollChecks: next }).catch(() => toast.error("Failed to save"))
       }, 500)
       return next
     })
@@ -113,7 +91,7 @@ export function ScriptTab({ project, onUpdate }: { project: Project; onUpdate: (
   const spokenText = spokenLines.join(" ")
   const wordCount = spokenText.trim() ? spokenText.trim().split(/\s+/).filter(Boolean).length : 0
   const readingMinutes = Math.ceil(wordCount / 130)
-  const targetWords = TARGET_WORDS[targetDuration] ?? 2600
+  const targetWords = targetWordsForDuration(parseInt(targetDuration))
   const progress = Math.min(Math.round((wordCount / targetWords) * 100), 100)
 
   const chapters = script

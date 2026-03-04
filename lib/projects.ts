@@ -25,6 +25,7 @@ export type Project = {
   script?: string
   aiSuggestions?: AiSuggestions
   brollChecks?: Record<string, boolean>
+  gearChecks?: Record<string, boolean>
   editorNotes?: string
 }
 

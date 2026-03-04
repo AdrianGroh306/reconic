@@ -6,7 +6,7 @@ import { Search, Sparkles, Youtube, Clapperboard } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useProject } from "@/hooks/use-projects"
 import { ProjectHeader } from "./_components/project-header"
-import { SuggestionsTab } from "./_components/suggestions-tab"
+import { ConceptTab } from "./_components/concept-tab"
 import { ResearchTab } from "./_components/research-tab"
 import { ScriptTab } from "./_components/script-tab"
 import { ProductionTab } from "./_components/production-tab"
@@ -57,7 +57,7 @@ export default function ProjectDetailPage() {
         </TabsList>
 
         <TabsContent value="concept" className="mt-6">
-          <SuggestionsTab project={project} onUpdate={handleProjectUpdate} />
+          <ConceptTab project={project} onUpdate={handleProjectUpdate} />
         </TabsContent>
         <TabsContent value="research" className="mt-6">
           <ResearchTab initialQuery={project.topic} projectId={project.id} />

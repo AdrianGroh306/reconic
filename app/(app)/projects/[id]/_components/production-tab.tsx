@@ -5,30 +5,8 @@ import { Camera, Video, Wrench } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { patchProject, type Project } from "@/lib/projects"
-
-function lineHash(line: string): string {
-  let h = 0
-  for (let i = 0; i < line.length; i++) {
-    h = ((h << 5) - h + line.charCodeAt(i)) | 0
-  }
-  return String(h >>> 0)
-}
-
-function parseBrollLines(script: string): string[] {
-  return script
-    .split("\n")
-    .filter((line) => /^\[B:/i.test(line.trim()))
-    .map((line) => line.replace(/^\[B:/i, "").replace(/\]$/, "").trim())
-    .filter(Boolean)
-}
-
-function parseArollLines(script: string): string[] {
-  return script
-    .split("\n")
-    .filter((line) => /^\[A\]/i.test(line.trim()))
-    .map((line) => line.replace(/^\[A\]\s*/i, "").trim())
-    .filter(Boolean)
-}
+import { lineHash, parseBrollLines, parseArollLines } from "@/lib/script-utils"
+import { toast } from "sonner"
 
 const GEAR_ITEMS = [
   "Camera body",
@@ -45,15 +23,17 @@ const GEAR_ITEMS = [
 export function ProductionTab({ project, onUpdate }: { project: Project; onUpdate: () => void }) {
   const notesTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const brollTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const gearTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const [brollChecked, setBrollChecked] = useState<Record<string, boolean>>(project.brollChecks ?? {})
-  const [gearChecked, setGearChecked] = useState<Record<string, boolean>>({})
+  const [gearChecked, setGearChecked] = useState<Record<string, boolean>>(project.gearChecks ?? {})
   const [editorNotes, setEditorNotes] = useState(project.editorNotes ?? "")
 
   useEffect(() => {
     setBrollChecked(project.brollChecks ?? {})
+    setGearChecked(project.gearChecks ?? {})
     setEditorNotes(project.editorNotes ?? "")
-  }, [project.id, project.brollChecks, project.editorNotes])
+  }, [project.id, project.brollChecks, project.gearChecks, project.editorNotes])
 
   function toggleBroll(line: string) {
     const key = lineHash(line)
@@ -61,21 +41,28 @@ export function ProductionTab({ project, onUpdate }: { project: Project; onUpdat
       const next = { ...prev, [key]: !prev[key] }
       if (brollTimer.current) clearTimeout(brollTimer.current)
       brollTimer.current = setTimeout(() => {
-        patchProject(project.id, { brollChecks: next }).then(onUpdate)
+        patchProject(project.id, { brollChecks: next }).then(onUpdate).catch(() => toast.error("Failed to save"))
       }, 500)
       return next
     })
   }
 
   function toggleGear(item: string) {
-    setGearChecked((prev) => ({ ...prev, [item]: !prev[item] }))
+    setGearChecked((prev) => {
+      const next = { ...prev, [item]: !prev[item] }
+      if (gearTimer.current) clearTimeout(gearTimer.current)
+      gearTimer.current = setTimeout(() => {
+        patchProject(project.id, { gearChecks: next }).catch(() => toast.error("Failed to save"))
+      }, 500)
+      return next
+    })
   }
 
   function handleEditorNotesChange(val: string) {
     setEditorNotes(val)
     if (notesTimer.current) clearTimeout(notesTimer.current)
     notesTimer.current = setTimeout(() => {
-      patchProject(project.id, { editorNotes: val }).then(onUpdate)
+      patchProject(project.id, { editorNotes: val }).then(onUpdate).catch(() => toast.error("Failed to save notes"))
     }, 800)
   }
 

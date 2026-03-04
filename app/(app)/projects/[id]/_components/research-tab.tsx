@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useCallback } from "react"
+import Link from "next/link"
 import { Search, BookmarkPlus, X } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -73,25 +74,32 @@ export function ResearchTab({ initialQuery, projectId }: { initialQuery: string;
           <div className="grid grid-cols-3 gap-2">
             {inspirations.map((inspo) => (
               <div key={inspo.video_id} className="relative group rounded-md overflow-hidden aspect-video bg-muted">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={inspo.thumbnail_url}
-                  alt={inspo.title}
-                  className="h-full w-full object-cover"
-                  referrerPolicy="no-referrer"
-                />
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors" />
+                <Link
+                  href={`https://www.youtube.com/watch?v=${inspo.video_id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block h-full w-full"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={inspo.thumbnail_url}
+                    alt={inspo.title}
+                    className="h-full w-full object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors" />
+                  <p className="absolute bottom-0 inset-x-0 px-1.5 py-1 text-[10px] text-white leading-snug line-clamp-1 bg-gradient-to-t from-black/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                    {inspo.title}
+                  </p>
+                </Link>
                 <button
                   type="button"
                   onClick={() => removeInspiration(inspo.video_id)}
-                  className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 hover:bg-black/80 text-white rounded-full p-0.5"
+                  className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 hover:bg-black/80 text-white rounded-full p-0.5 z-10"
                   title="Remove"
                 >
                   <X className="h-3 w-3" />
                 </button>
-                <p className="absolute bottom-0 inset-x-0 px-1.5 py-1 text-[10px] text-white leading-snug line-clamp-1 bg-gradient-to-t from-black/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                  {inspo.title}
-                </p>
               </div>
             ))}
           </div>

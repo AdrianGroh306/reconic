@@ -1,30 +1,38 @@
 "use client"
 
+import { useState } from "react"
 import Link from "next/link"
 import { BookmarkX, Bookmark } from "lucide-react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { fetchFavoritedChannels, deleteFavoritedChannel } from "@/lib/channels"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-
-function formatSubscriberCount(count: string): string {
-  const n = parseInt(count)
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
-  if (n >= 1_000) return `${Math.floor(n / 1_000)}K`
-  return String(n)
-}
+import { Skeleton } from "@/components/ui/skeleton"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { formatCount } from "@/lib/utils"
 
 export default function ChannelsPage() {
   const queryClient = useQueryClient()
-  const { data: channels = [] } = useQuery({
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
+
+  const { data: channels, isLoading } = useQuery({
     queryKey: ["favorited-channels"],
     queryFn: fetchFavoritedChannels,
     staleTime: 30 * 1000,
   })
 
-  async function handleRemove(channelId: string) {
-    await deleteFavoritedChannel(channelId)
+  async function confirmDelete() {
+    if (!deleteTarget) return
+    await deleteFavoritedChannel(deleteTarget)
     queryClient.invalidateQueries({ queryKey: ["favorited-channels"] })
+    setDeleteTarget(null)
   }
 
   return (
@@ -36,7 +44,21 @@ export default function ChannelsPage() {
         </p>
       </div>
 
-      {channels.length === 0 ? (
+      {isLoading ? (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Card key={i}>
+              <CardContent className="flex gap-4 p-4">
+                <Skeleton className="h-14 w-14 rounded-full shrink-0" />
+                <div className="flex-1 space-y-2 py-1">
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-3 w-1/2" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : !channels || channels.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 text-center gap-3">
           <Bookmark className="h-10 w-10 text-muted-foreground/40" />
           <p className="text-muted-foreground text-sm">
@@ -51,7 +73,7 @@ export default function ChannelsPage() {
                 variant="ghost"
                 size="icon"
                 className="absolute top-2 right-2 h-7 w-7 z-10"
-                onClick={() => handleRemove(channel.channelId)}
+                onClick={() => setDeleteTarget(channel.channelId)}
                 title="Remove channel"
               >
                 <BookmarkX className="h-4 w-4 text-muted-foreground" />
@@ -77,7 +99,7 @@ export default function ChannelsPage() {
                     <p className="font-medium truncate">{channel.title}</p>
                     {channel.subscriberCount && (
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        {formatSubscriberCount(channel.subscriberCount)} subscribers
+                        {formatCount(parseInt(channel.subscriberCount))} subscribers
                       </p>
                     )}
                     <p className="text-xs text-muted-foreground mt-1">
@@ -90,6 +112,25 @@ export default function ChannelsPage() {
           ))}
         </div>
       )}
+
+      <Dialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null) }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Remove channel?</DialogTitle>
+            <DialogDescription>
+              This channel will be removed from your saved channels.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteTarget(null)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={confirmDelete}>
+              Remove
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

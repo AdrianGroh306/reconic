@@ -123,4 +123,10 @@
   body {
     @apply bg-background text-foreground;
   }
+  button, a, [role="button"], [role="tab"], [role="option"], label[for], select {
+    cursor: pointer;
+  }
+  button:disabled, [aria-disabled="true"] {
+    cursor: not-allowed;
+  }
 }

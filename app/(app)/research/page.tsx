@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useDebounce } from "@/hooks/use-debounce"
 import { VideoResults, ChannelResults } from "./_components/search-results"
 
-export default function DashboardPage() {
+export default function ResearchPage() {
   const [inputValue, setInputValue] = useState("")
   const query = useDebounce(inputValue, 400)
 

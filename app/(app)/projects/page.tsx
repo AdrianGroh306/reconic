@@ -105,7 +105,7 @@ export default function ProjectsPage() {
 
               <CardHeader className="pb-2">
                 <div className="flex items-start justify-between gap-2">
-                  <CardTitle className="text-base leading-snug">{project.title}</CardTitle>
+                  <CardTitle className="text-base leading-snug">{project.chosenTitle ?? project.title}</CardTitle>
                   <DropdownMenu>
                     <DropdownMenuTrigger
                       render={

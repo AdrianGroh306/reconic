@@ -3,6 +3,7 @@ import { google } from "@ai-sdk/google"
 import { streamObject } from "ai"
 import { z } from "zod"
 import { createClient } from "@/lib/supabase/server"
+import { WORDS_PER_MINUTE } from "@/lib/script-utils"
 
 const suggestionsSchema = z.object({
   titles: z.array(z.string()).describe("5 compelling YouTube video titles"),
@@ -57,7 +58,7 @@ export async function POST(request: NextRequest) {
   }
 
   const targetDuration: number = Number(duration) || 20
-  const targetWords = Math.round(targetDuration * 130)
+  const targetWords = Math.round(targetDuration * WORDS_PER_MINUTE)
 
   const context = description?.trim()
     ? `Topic: ${topic}\nDescription: ${description}`

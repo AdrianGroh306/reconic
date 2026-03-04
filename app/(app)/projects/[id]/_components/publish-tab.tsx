@@ -34,7 +34,7 @@ interface Props {
 }
 
 export function PublishTab({ project }: Props) {
-  const [title, setTitle] = useState(project.title)
+  const [title, setTitle] = useState(project.chosenTitle ?? project.title)
   const [description, setDescription] = useState(project.description ?? "")
   const [privacy, setPrivacy] = useState<PrivacyStatus>("unlisted")
   const [file, setFile] = useState<File | null>(null)

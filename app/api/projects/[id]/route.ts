@@ -17,6 +17,7 @@ function toProject(row: Record<string, unknown>): Project {
     script:         (row.script as string | null) ?? undefined,
     aiSuggestions:  (row.ai_suggestions as Project["aiSuggestions"]) ?? undefined,
     brollChecks:    (row.broll_checks as Project["brollChecks"]) ?? undefined,
+    gearChecks:     (row.gear_checks as Project["gearChecks"]) ?? undefined,
     editorNotes:    (row.editor_notes as string | null) ?? undefined,
   }
 }
@@ -65,6 +66,7 @@ export async function PATCH(
   if ("script"         in changes) update.script          = changes.script ?? null
   if ("aiSuggestions"  in changes) update.ai_suggestions  = changes.aiSuggestions ?? null
   if ("brollChecks"    in changes) update.broll_checks    = changes.brollChecks ?? null
+  if ("gearChecks"     in changes) update.gear_checks     = changes.gearChecks ?? null
   if ("editorNotes"    in changes) update.editor_notes    = changes.editorNotes ?? null
 
   const { error } = await supabase

@@ -1,18 +1,14 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { toast } from "sonner"
 import { Youtube, CheckCircle2, LogOut, Loader2, Users, Video, RefreshCw, Clock, Tag, Target } from "lucide-react"
 import { getYouTubeAccount, removeYouTubeAccount, type YouTubeAccount } from "@/lib/youtube-account"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { formatDuration } from "@/lib/youtube"
-
-function formatCount(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
-  if (n >= 1_000) return `${Math.round(n / 1_000)}K`
-  return n.toString()
-}
+import { formatCount } from "@/lib/utils"
 
 type AnalysisResult = {
   niche: string
@@ -34,10 +30,12 @@ export default function SettingsPage() {
   })
 
   // Auto-analyze on first load if account exists but hasn't been analyzed
-  const shouldAnalyze = account && !account.niche && !analyzing && !analysisResult
-  if (shouldAnalyze) {
-    runAnalysis()
-  }
+  useEffect(() => {
+    if (account && !account.niche && !analyzing && !analysisResult) {
+      runAnalysis()
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [account?.channel_id])
 
   async function runAnalysis() {
     setAnalyzing(true)
@@ -47,7 +45,12 @@ export default function SettingsPage() {
         const data = await res.json()
         setAnalysisResult(data)
         queryClient.invalidateQueries({ queryKey: ["youtube-account"] })
+        toast.success("Channel analysis complete")
+      } else {
+        toast.error("Failed to analyze channel")
       }
+    } catch {
+      toast.error("Failed to analyze channel")
     } finally {
       setAnalyzing(false)
     }

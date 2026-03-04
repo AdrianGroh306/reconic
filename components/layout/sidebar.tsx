@@ -14,7 +14,7 @@ import type { User } from "@supabase/supabase-js"
 const navItems = [
   { href: "/overview", label: "Overview", icon: LayoutDashboard },
   { href: "/projects", label: "Projects", icon: FolderOpen },
-  { href: "/dashboard", label: "Research", icon: Search },
+  { href: "/research", label: "Research", icon: Search },
   { href: "/channels", label: "Channels", icon: Bookmark },
   { href: "/settings", label: "Settings", icon: Settings },
 ]

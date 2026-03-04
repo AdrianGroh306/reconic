@@ -26,7 +26,7 @@ function relativeTime(isoString: string): string {
   return "just now"
 }
 
-export function SuggestionsTab({ project, onUpdate }: { project: Project; onUpdate: () => void }) {
+export function ConceptTab({ project, onUpdate }: { project: Project; onUpdate: () => void }) {
   const [suggestions, setSuggestions] = useState<Partial<AiSuggestions> | null>(
     project.aiSuggestions ?? null
   )

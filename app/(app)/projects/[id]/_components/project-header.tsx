@@ -2,6 +2,7 @@
 
 import { useRef, useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { useQueryClient } from "@tanstack/react-query"
 import { ChevronLeft, Upload, Pencil, ChevronDown, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -34,7 +35,20 @@ const MANUAL_STATUS_MAP: Partial<Record<ProjectStatusLabel, Project["status"]>> 
 
 export function ProjectHeader({ project, onUpdate }: ProjectHeaderProps) {
   const router = useRouter()
+  const queryClient = useQueryClient()
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Optimistic update: update both caches immediately, PATCH runs in background.
+  // No refetch triggered — avoids the race condition where refetch beats the PATCH.
+  function applyChanges(changes: Partial<Project>) {
+    queryClient.setQueryData<Project | null>(["project", project.id], (old) =>
+      old ? { ...old, ...changes } : old
+    )
+    queryClient.setQueryData<Project[]>(["projects"], (old) =>
+      old ? old.map((p) => (p.id === project.id ? { ...p, ...changes } : p)) : old
+    )
+    patchProject(project.id, changes)
+  }
   const [hovering, setHovering] = useState(false)
   const [notesOpen, setNotesOpen] = useState(false)
   const [notes, setNotes] = useState(project.notes ?? "")
@@ -54,26 +68,19 @@ export function ProjectHeader({ project, onUpdate }: ProjectHeaderProps) {
     if (!file) return
     const reader = new FileReader()
     reader.onload = () => {
-      const base64 = reader.result as string
-      patchProject(project.id, { thumbnail: base64 })
-      onUpdate()
+      applyChanges({ thumbnail: reader.result as string })
     }
     reader.readAsDataURL(file)
     e.target.value = ""
   }
 
   function handleStepClick(step: ProjectStatusLabel) {
-    if (step === "idea" || step === "scripted") {
-      patchProject(project.id, { status: undefined })
-    } else {
-      patchProject(project.id, { status: MANUAL_STATUS_MAP[step] })
-    }
-    onUpdate()
+    const status = (step === "idea" || step === "scripted") ? undefined : MANUAL_STATUS_MAP[step]
+    applyChanges({ status })
   }
 
   function handleNotesBlur() {
-    patchProject(project.id, { notes })
-    onUpdate()
+    applyChanges({ notes })
   }
 
   const currentStatus = computeStatus(project)
@@ -152,8 +159,7 @@ export function ProjectHeader({ project, onUpdate }: ProjectHeaderProps) {
               onChange={(e) => setVideoTitleDraft(e.target.value)}
               onBlur={() => {
                 const trimmed = videoTitleDraft.trim()
-                patchProject(project.id, { chosenTitle: trimmed || undefined })
-                onUpdate()
+                applyChanges({ chosenTitle: trimmed || undefined })
                 setEditingVideoTitle(false)
               }}
               onKeyDown={(e) => {
@@ -195,8 +201,7 @@ export function ProjectHeader({ project, onUpdate }: ProjectHeaderProps) {
               onBlur={() => {
                 const trimmed = topicDraft.trim()
                 if (trimmed && trimmed !== project.topic) {
-                  patchProject(project.id, { topic: trimmed })
-                  onUpdate()
+                  applyChanges({ topic: trimmed })
                 }
                 setEditingTopic(false)
               }}

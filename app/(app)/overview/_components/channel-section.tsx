@@ -1,58 +1,63 @@
 "use client"
 
 import Link from "next/link"
-import { Users, Video, Calendar, Youtube, Loader2, ExternalLink } from "lucide-react"
+import { Users, Video, Calendar, Youtube, Loader2, ExternalLink, Play } from "lucide-react"
 import { useQuery } from "@tanstack/react-query"
 import { getYouTubeAccount, type YouTubeAccount } from "@/lib/youtube-account"
 import { buttonVariants } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import type { YouTubeVideoResult } from "@/lib/youtube"
+import { formatCount } from "@/lib/utils"
 
-function formatCount(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
-  if (n >= 1_000) return `${Math.round(n / 1_000)}K`
-  return n.toString()
+function relativeTime(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime()
+  const days = Math.floor(diff / 86_400_000)
+  if (days === 0) return "Today"
+  if (days === 1) return "Yesterday"
+  if (days < 7) return `${days} days ago`
+  if (days < 30) return `${Math.floor(days / 7)}w ago`
+  if (days < 365) return `${Math.floor(days / 30)}mo ago`
+  return `${Math.floor(days / 365)}y ago`
 }
 
 function VideoThumb({ video }: { video: YouTubeVideoResult }) {
-  const date = new Date(video.publishedAt).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  })
   return (
     <Link
       href={`https://www.youtube.com/watch?v=${video.id}`}
       target="_blank"
       rel="noopener noreferrer"
+      className="group"
     >
-      <Card className="hover:bg-muted/50 pt-0 transition-colors overflow-hidden">
+      <Card className="overflow-hidden pt-0 gap-0 transition-shadow group-hover:shadow-md">
         <div className="aspect-video w-full bg-muted relative overflow-hidden">
           {video.thumbnail && (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={video.thumbnail}
               alt={video.title}
-              className="absolute inset-0 h-full w-full object-cover"
+              className="absolute inset-0 h-full w-full object-cover transition-transform duration-200 group-hover:scale-105"
               referrerPolicy="no-referrer"
             />
           )}
+          {/* Play button on hover */}
+          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30">
+            <div className="rounded-full bg-white/90 p-2.5">
+              <Play className="h-4 w-4 fill-black text-black" />
+            </div>
+          </div>
           {video.duration && (
             <span className="absolute bottom-1.5 right-1.5 rounded bg-black/80 px-1.5 py-0.5 text-[11px] font-mono text-white">
               {video.duration}
             </span>
           )}
         </div>
-        <CardContent className="p-3">
+        <CardContent className="px-3 pt-2.5 pb-3">
           <p className="text-sm font-medium line-clamp-2 leading-snug">{video.title}</p>
-          <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
-            <span>{date}</span>
+          <div className="mt-1 flex items-center justify-between text-xs text-muted-foreground">
+            <span>{relativeTime(video.publishedAt)}</span>
             {video.viewCount && (
-              <>
-                <span>·</span>
-                <span>{parseInt(video.viewCount).toLocaleString()} views</span>
-              </>
+              <span>{formatCount(parseInt(video.viewCount))} views</span>
             )}
           </div>
         </CardContent>
