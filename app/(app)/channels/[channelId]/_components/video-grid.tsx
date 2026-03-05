@@ -44,7 +44,7 @@ function VideoCard({ video }: { video: YouTubeVideoResult }) {
             </p>
           )}
         </CardContent>
-      </Card>
+      </Card> 
     </Link>
   )
 }

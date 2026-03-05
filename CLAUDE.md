@@ -1,5 +1,42 @@
 # Reconic - SaaS for YouTube Creators
 
+## Service URLs & Developer Portals
+
+### Local Dev
+- App: `http://127.0.0.1:3000` (use IP, not `localhost`)
+
+### Supabase
+- Dashboard: https://supabase.com/dashboard
+- Auth settings (OAuth redirect URLs, email confirmation): Dashboard → Project → Authentication → URL Configuration
+- SQL Editor (run schema changes): Dashboard → Project → SQL Editor
+
+### Google / YouTube
+- Developer Console (OAuth credentials, APIs): https://console.cloud.google.com
+- OAuth 2.0 Redirect URI to register: `http://127.0.0.1:3000/api/youtube/callback`
+- Scopes used: `youtube.upload`, `youtube.readonly`
+- Token endpoint: `https://accounts.google.com/o/oauth2/v2/auth`
+- Token exchange: `https://oauth2.googleapis.com/token`
+- YouTube Data API v3: `https://www.googleapis.com/youtube/v3/`
+- YouTube Upload API: `https://www.googleapis.com/upload/youtube/v3/`
+- YouTube API key: `YOUTUBE_DATA_API_KEY` (server-side only)
+- Google OAuth: `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET`
+
+### Canva
+- Developer Portal (create integration, get credentials): https://www.canva.com/developers/integrations
+- OAuth Redirect URI to register: `http://127.0.0.1:3000/api/canva/callback`
+- Scopes to enable: `design:content:read`, `design:content:write`
+- OAuth authorize: `https://www.canva.com/api/oauth/authorize`
+- Token endpoint: `https://api.canva.com/rest/v1/oauth/token`
+- REST API base: `https://api.canva.com/rest/v1/`
+- Credentials: `CANVA_CLIENT_ID` + `CANVA_CLIENT_SECRET`
+
+### Google Gemini (AI)
+- API key console: https://aistudio.google.com/app/apikey
+- Credential: `GOOGLE_GENERATIVE_AI_API_KEY`
+- Model used: `gemini-3.1-flash-lite-preview`
+
+
+
 ## Project Overview
 Reconic is a SaaS platform for YouTube creators featuring research dashboards, video asset editing, and AI-powered tools.
 

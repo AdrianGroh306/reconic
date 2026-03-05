@@ -1,25 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
-import type { Project } from "@/lib/projects"
-
-function toProject(row: Record<string, unknown>): Project {
-  return {
-    id:              row.id as string,
-    title:           row.title as string,
-    topic:           row.topic as string,
-    description:     (row.description as string) ?? "",
-    createdAt:       row.created_at as string,
-    chosenTitle:     (row.chosen_title as string | null) ?? undefined,
-    status:          (row.status as Project["status"]) ?? undefined,
-    notes:           (row.notes as string | null) ?? undefined,
-    targetDuration:  (row.target_duration as number | null) ?? undefined,
-    thumbnail:       (row.thumbnail as string | null) ?? undefined,
-    script:          (row.script as string | null) ?? undefined,
-    aiSuggestions:   (row.ai_suggestions as Project["aiSuggestions"]) ?? undefined,
-    brollChecks:     (row.broll_checks as Project["brollChecks"]) ?? undefined,
-    editorNotes:     (row.editor_notes as string | null) ?? undefined,
-  }
-}
+import { toProject, type Project } from "@/lib/projects"
 
 export async function GET() {
   const supabase = await createClient()

@@ -7,7 +7,7 @@ export async function GET() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
-    return NextResponse.redirect(new URL("/login", process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"))
+    return NextResponse.redirect(new URL("/login", process.env.NEXT_PUBLIC_SITE_URL ?? "http://127.0.0.1:3000"))
   }
 
   const clientId = process.env.GOOGLE_CLIENT_ID
@@ -26,7 +26,7 @@ export async function GET() {
     path: "/",
   })
 
-  const redirectUri = `${process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"}/api/youtube/callback`
+  const redirectUri = `${process.env.NEXT_PUBLIC_SITE_URL ?? "http://127.0.0.1:3000"}/api/youtube/callback`
 
   const params = new URLSearchParams({
     client_id: clientId,

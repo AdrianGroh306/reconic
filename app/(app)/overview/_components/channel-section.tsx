@@ -8,18 +8,7 @@ import { buttonVariants } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import type { YouTubeVideoResult } from "@/lib/youtube"
-import { formatCount } from "@/lib/utils"
-
-function relativeTime(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime()
-  const days = Math.floor(diff / 86_400_000)
-  if (days === 0) return "Today"
-  if (days === 1) return "Yesterday"
-  if (days < 7) return `${days} days ago`
-  if (days < 30) return `${Math.floor(days / 7)}w ago`
-  if (days < 365) return `${Math.floor(days / 30)}mo ago`
-  return `${Math.floor(days / 365)}y ago`
-}
+import { formatCount, relativeTime } from "@/lib/utils"
 
 function VideoThumb({ video }: { video: YouTubeVideoResult }) {
   return (

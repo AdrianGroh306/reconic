@@ -1,4 +1,4 @@
-export type ProjectStatus = 'filming' | 'editing' | 'published'
+export type ProjectStatus = 'scripted' | 'filming' | 'editing' | 'published'
 export type ProjectStatusLabel = 'published' | 'editing' | 'filming' | 'scripted' | 'idea'
 
 export type AiSuggestions = {
@@ -27,6 +27,7 @@ export type Project = {
   brollChecks?: Record<string, boolean>
   gearChecks?: Record<string, boolean>
   editorNotes?: string
+  canvaDesignId?: string
 }
 
 export const STATUS_CONFIG: Record<ProjectStatusLabel, { label: string; className: string }> = {
@@ -45,6 +46,29 @@ export function computeStatus(project: Project): ProjectStatusLabel {
   return 'idea'
 }
 
+// ─── Row → Project mapper (used by API routes) ──────────────────────────────
+
+export function toProject(row: Record<string, unknown>): Project {
+  return {
+    id:             row.id as string,
+    title:          row.title as string,
+    topic:          row.topic as string,
+    description:    (row.description as string) ?? "",
+    createdAt:      row.created_at as string,
+    chosenTitle:    (row.chosen_title as string | null) ?? undefined,
+    status:         (row.status as Project["status"]) ?? undefined,
+    notes:          (row.notes as string | null) ?? undefined,
+    targetDuration: (row.target_duration as number | null) ?? undefined,
+    thumbnail:      (row.thumbnail as string | null) ?? undefined,
+    script:         (row.script as string | null) ?? undefined,
+    aiSuggestions:  (row.ai_suggestions as Project["aiSuggestions"]) ?? undefined,
+    brollChecks:    (row.broll_checks as Project["brollChecks"]) ?? undefined,
+    gearChecks:     (row.gear_checks as Project["gearChecks"]) ?? undefined,
+    editorNotes:    (row.editor_notes as string | null) ?? undefined,
+    canvaDesignId:  (row.canva_design_id as string | null) ?? undefined,
+  }
+}
+
 // ─── API helpers ──────────────────────────────────────────────────────────────
 
 export async function createProject(
@@ -60,10 +84,17 @@ export async function createProject(
 }
 
 export async function patchProject(id: string, changes: Partial<Project>): Promise<void> {
+  // Convert undefined values to null so JSON.stringify preserves the keys
+  // (the PATCH handler checks `"key" in changes` to know what to update)
+  const body: Record<string, unknown> = {}
+  for (const [k, v] of Object.entries(changes)) {
+    body[k] = v === undefined ? null : v
+  }
+
   const res = await fetch(`/api/projects/${id}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(changes),
+    body: JSON.stringify(body),
   })
   if (!res.ok) throw new Error('Failed to update project')
 }

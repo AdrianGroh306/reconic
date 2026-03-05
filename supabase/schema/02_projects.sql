@@ -13,8 +13,8 @@ CREATE TABLE projects (
   topic             TEXT        NOT NULL DEFAULT '',   -- research / search topic
   description       TEXT        DEFAULT '',
   chosen_title      TEXT,                              -- actual video title (the H1)
-  status            TEXT,                              -- filming | editing | published
-                                                       -- NULL = idea or scripted (derived)
+  status            TEXT,                              -- scripted | filming | editing | published
+                                                       -- NULL = idea (derived from script word count)
   notes             TEXT        DEFAULT '',
   target_duration   INTEGER,                           -- target video length in minutes
 
@@ -35,6 +35,9 @@ CREATE TABLE projects (
 
   -- Production tab
   editor_notes      TEXT        DEFAULT '',
+
+  -- Canva integration
+  canva_design_id   TEXT,                              -- Canva design ID for thumbnail
 
   created_at        TIMESTAMPTZ DEFAULT NOW(),
   updated_at        TIMESTAMPTZ DEFAULT NOW()

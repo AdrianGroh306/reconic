@@ -6,18 +6,18 @@ import { createClient } from "@/lib/supabase/client"
 
 export function UserProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient()
-  const prevUserId = useRef<string | null>(null)
+  const prevUserId = useRef<string | null | "unset">("unset")
 
   useEffect(() => {
     const supabase = createClient()
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
-      const id = session?.user?.id ?? ""
-      if (id !== prevUserId.current) {
-        prevUserId.current = id
-        // Clear all cached data when user changes
+      const id = session?.user?.id ?? null
+      // Skip the initial fire — only clear on actual user switches
+      if (prevUserId.current !== "unset" && id !== prevUserId.current) {
         queryClient.clear()
       }
+      prevUserId.current = id
     })
 
     return () => subscription.unsubscribe()

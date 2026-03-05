@@ -3,8 +3,9 @@
 import { useState, useEffect } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
-import { Youtube, CheckCircle2, LogOut, Loader2, Users, Video, RefreshCw, Clock, Tag, Target } from "lucide-react"
+import { Youtube, CheckCircle2, LogOut, Loader2, Users, Video, RefreshCw, Clock, Tag, Target, Palette } from "lucide-react"
 import { getYouTubeAccount, removeYouTubeAccount, type YouTubeAccount } from "@/lib/youtube-account"
+import { getCanvaAccount, removeCanvaAccount, type CanvaAccount } from "@/lib/canva-account"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { formatDuration } from "@/lib/youtube"
@@ -22,10 +23,17 @@ export default function SettingsPage() {
   const [connecting, setConnecting] = useState(false)
   const [analyzing, setAnalyzing] = useState(false)
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null)
+  const [canvaConnecting, setCanvaConnecting] = useState(false)
 
   const { data: account, isLoading: loading } = useQuery<YouTubeAccount | null>({
     queryKey: ["youtube-account"],
     queryFn: () => getYouTubeAccount(),
+    staleTime: 5 * 60 * 1000,
+  })
+
+  const { data: canvaAccount, isLoading: canvaLoading } = useQuery<CanvaAccount | null>({
+    queryKey: ["canva-account"],
+    queryFn: () => getCanvaAccount(),
     staleTime: 5 * 60 * 1000,
   })
 
@@ -66,6 +74,17 @@ export default function SettingsPage() {
     await removeYouTubeAccount(account.channel_id)
     queryClient.setQueryData(["youtube-account"], null)
     setAnalysisResult(null)
+  }
+
+  function handleCanvaConnect() {
+    setCanvaConnecting(true)
+    window.location.href = "/api/canva/connect"
+  }
+
+  async function handleCanvaDisconnect() {
+    await removeCanvaAccount()
+    queryClient.setQueryData(["canva-account"], null)
+    toast.success("Canva disconnected")
   }
 
   const isConnected = !!account
@@ -217,6 +236,49 @@ export default function SettingsPage() {
                 <Youtube className="mr-2 h-4 w-4" />
               )}
               Connect YouTube Account
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {/* Canva Section */}
+      <div className="rounded-lg border p-6 space-y-4">
+        <div className="flex items-center gap-2">
+          <Palette className="h-5 w-5 text-purple-500" />
+          <h2 className="text-lg font-semibold">Canva</h2>
+        </div>
+
+        {canvaLoading ? (
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span className="text-sm">Loading…</span>
+          </div>
+        ) : canvaAccount ? (
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
+              <div>
+                <p className="font-medium text-sm">{canvaAccount.display_name ?? "Canva Account"}</p>
+                <p className="text-xs text-muted-foreground">Connected — use "Open in Canva" in any project to create thumbnails</p>
+              </div>
+            </div>
+            <Button variant="outline" size="sm" onClick={handleCanvaDisconnect}>
+              <LogOut className="mr-1.5 h-3.5 w-3.5" />
+              Disconnect
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Connect Canva to design YouTube thumbnails (1280×720) directly from your projects.
+            </p>
+            <Button onClick={handleCanvaConnect} disabled={canvaConnecting}>
+              {canvaConnecting ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Palette className="mr-2 h-4 w-4" />
+              )}
+              Connect Canva
             </Button>
           </div>
         )}

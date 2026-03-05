@@ -1,9 +1,11 @@
 "use client"
 
-import { useRef, useState, useEffect } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { useQueryClient } from "@tanstack/react-query"
-import { ChevronLeft, Upload, Pencil, ChevronDown, Check } from "lucide-react"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { toast } from "sonner"
+import { ChevronLeft, Upload, Check, ExternalLink, RefreshCw, X, Palette, Loader2, ImageIcon } from "lucide-react"
+
 import { Button } from "@/components/ui/button"
 import {
   patchProject,
@@ -11,6 +13,7 @@ import {
   type Project,
   type ProjectStatusLabel,
 } from "@/lib/projects"
+import { getCanvaAccount, type CanvaAccount } from "@/lib/canva-account"
 
 interface ProjectHeaderProps {
   project: Project
@@ -28,6 +31,7 @@ const WORKFLOW_STEPS: Array<{ value: ProjectStatusLabel; label: string }> = [
 const STEP_ORDER: ProjectStatusLabel[] = ["idea", "scripted", "filming", "editing", "published"]
 
 const MANUAL_STATUS_MAP: Partial<Record<ProjectStatusLabel, Project["status"]>> = {
+  scripted:  "scripted",
   filming:   "filming",
   editing:   "editing",
   published: "published",
@@ -36,7 +40,20 @@ const MANUAL_STATUS_MAP: Partial<Record<ProjectStatusLabel, Project["status"]>> 
 export function ProjectHeader({ project, onUpdate }: ProjectHeaderProps) {
   const router = useRouter()
   const queryClient = useQueryClient()
-  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const { data: canvaAccount } = useQuery<CanvaAccount | null>({
+    queryKey: ["canva-account"],
+    queryFn: () => getCanvaAccount(),
+    staleTime: 5 * 60 * 1000,
+  })
+
+  const [canvaLoading, setCanvaLoading] = useState(false)
+  const [syncing, setSyncing] = useState(false)
+  const canvaConnected = !!canvaAccount
+  const hasDesign = !!project.canvaDesignId
+
+  // Local thumbnail state for immediate display (bypasses React Query propagation delay)
+  const [thumbnail, setThumbnail] = useState<string | undefined>(project.thumbnail)
 
   // Optimistic update: update both caches immediately, PATCH runs in background.
   // No refetch triggered — avoids the race condition where refetch beats the PATCH.
@@ -47,40 +64,115 @@ export function ProjectHeader({ project, onUpdate }: ProjectHeaderProps) {
     queryClient.setQueryData<Project[]>(["projects"], (old) =>
       old ? old.map((p) => (p.id === project.id ? { ...p, ...changes } : p)) : old
     )
-    patchProject(project.id, changes)
+    patchProject(project.id, changes).catch(() => toast.error("Failed to save"))
   }
-  const [hovering, setHovering] = useState(false)
-  const [notesOpen, setNotesOpen] = useState(false)
-  const [notes, setNotes] = useState(project.notes ?? "")
+
+  function updateThumbnail(dataUrl: string | undefined) {
+    setThumbnail(dataUrl)
+    applyChanges({ thumbnail: dataUrl })
+  }
+
   const [editingVideoTitle, setEditingVideoTitle] = useState(false)
   const [editingTopic, setEditingTopic] = useState(false)
   const [videoTitleDraft, setVideoTitleDraft] = useState(project.chosenTitle ?? project.title)
   const [topicDraft, setTopicDraft] = useState(project.topic)
 
   useEffect(() => {
-    setNotes(project.notes ?? "")
     setVideoTitleDraft(project.chosenTitle ?? project.title)
     setTopicDraft(project.topic)
-  }, [project.id, project.notes, project.chosenTitle, project.title, project.topic])
+    setThumbnail(project.thumbnail)
+  }, [project.id, project.chosenTitle, project.title, project.topic, project.thumbnail])
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
-    const reader = new FileReader()
-    reader.onload = () => {
-      applyChanges({ thumbnail: reader.result as string })
-    }
-    reader.readAsDataURL(file)
     e.target.value = ""
+
+    const img = new Image()
+    const objectUrl = URL.createObjectURL(file)
+    img.onload = () => {
+      const MAX = 1280
+      let w = img.naturalWidth, h = img.naturalHeight
+      if (w > MAX) { h = Math.round(h * MAX / w); w = MAX }
+      const canvas = document.createElement("canvas")
+      canvas.width = w
+      canvas.height = h
+      canvas.getContext("2d")!.drawImage(img, 0, 0, w, h)
+      URL.revokeObjectURL(objectUrl)
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.85)
+      updateThumbnail(dataUrl)
+    }
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl)
+      toast.error("Failed to read image")
+    }
+    img.src = objectUrl
   }
 
   function handleStepClick(step: ProjectStatusLabel) {
-    const status = (step === "idea" || step === "scripted") ? undefined : MANUAL_STATUS_MAP[step]
+    const status = step === "idea" ? undefined : MANUAL_STATUS_MAP[step]
     applyChanges({ status })
   }
 
-  function handleNotesBlur() {
-    applyChanges({ notes })
+  async function handleOpenInCanva() {
+    if (!canvaConnected) {
+      router.push("/settings?canva=connect")
+      return
+    }
+
+    if (hasDesign) {
+      // Re-open existing design — we need the edit URL from Canva
+      // Simply create a new export isn't possible without the edit URL; redirect to Canva designs page
+      window.open(`https://www.canva.com/design/${project.canvaDesignId}/edit`, "_blank")
+      return
+    }
+
+    setCanvaLoading(true)
+    try {
+      const res = await fetch("/api/canva/designs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: project.chosenTitle ?? project.title }),
+      })
+
+      if (!res.ok) {
+        toast.error("Failed to create Canva design")
+        return
+      }
+
+      const { designId, editUrl } = await res.json() as { designId: string; editUrl: string }
+      applyChanges({ canvaDesignId: designId })
+      window.open(editUrl, "_blank")
+    } catch {
+      toast.error("Failed to create Canva design")
+    } finally {
+      setCanvaLoading(false)
+    }
+  }
+
+  async function handleSyncFromCanva() {
+    if (!project.canvaDesignId) return
+    setSyncing(true)
+    try {
+      const res = await fetch("/api/canva/export", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ designId: project.canvaDesignId }),
+      })
+
+      if (!res.ok) {
+        toast.error("Failed to sync from Canva")
+        return
+      }
+
+      const { thumbnail: synced } = await res.json() as { thumbnail: string }
+      updateThumbnail(synced)
+      toast.success("Thumbnail synced from Canva")
+    } catch {
+      toast.error("Failed to sync from Canva")
+    } finally {
+      setSyncing(false)
+    }
   }
 
   const currentStatus = computeStatus(project)
@@ -108,43 +200,98 @@ export function ProjectHeader({ project, onUpdate }: ProjectHeaderProps) {
       </div>
 
       <div className="flex items-start gap-5">
-        {/* Thumbnail — left, 16:9 */}
+        {/* Thumbnail card — unified frame with toolbar */}
         <div
-          className="relative shrink-0 cursor-pointer overflow-hidden rounded-lg"
-          style={{ width: 320, height: 180 }}
-          onClick={() => fileInputRef.current?.click()}
-          onMouseEnter={() => setHovering(true)}
-          onMouseLeave={() => setHovering(false)}
+          className="group/thumb shrink-0 rounded-lg border border-border"
+          style={{ width: 320 }}
         >
-          {project.thumbnail ? (
-            <>
-              <img
-                src={project.thumbnail}
-                alt="Project thumbnail"
-                className="h-full w-full object-cover"
-              />
-              {hovering && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/50 text-white">
-                  <Upload className="h-5 w-5" />
-                  <span className="text-xs font-medium">Change</span>
+          {/* Image zone — 16:9 */}
+          <div className="relative bg-muted/20 rounded-t-lg overflow-hidden" style={{ height: 180 }}>
+            {thumbnail ? (
+              <>
+                <img
+                  src={thumbnail}
+                  alt="Project thumbnail"
+                  className="h-full w-full object-cover"
+                />
+                <div className="absolute inset-0 flex items-center justify-center gap-6 bg-black/50 opacity-0 group-hover/thumb:opacity-100 transition-opacity">
+                  {/* Replace — transparent input sits on top of the button area */}
+                  <div className="relative flex flex-col items-center gap-1 text-white hover:text-white/70 transition-colors cursor-pointer">
+                    <Upload className="h-4 w-4 pointer-events-none" />
+                    <span className="text-xs font-medium pointer-events-none">Replace</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileChange}
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => updateThumbnail(undefined)}
+                    className="flex flex-col items-center gap-1 text-white hover:text-white/70 transition-colors"
+                  >
+                    <X className="h-4 w-4" />
+                    <span className="text-xs font-medium">Remove</span>
+                  </button>
                 </div>
-              )}
-            </>
-          ) : (
-            <div className="flex h-full w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-muted-foreground/30 text-muted-foreground hover:border-muted-foreground/60 hover:text-muted-foreground/80 transition-colors">
-              <Upload className="h-5 w-5" />
-              <span className="text-xs font-medium">Upload thumbnail</span>
-            </div>
-          )}
-        </div>
+              </>
+            ) : (
+              /* Empty state — transparent input covers full area */
+              <div className="relative flex h-full w-full flex-col items-center justify-center gap-1.5 text-muted-foreground/40 hover:text-muted-foreground/60 hover:bg-muted/30 transition-colors">
+                <ImageIcon className="h-7 w-7 pointer-events-none" />
+                <span className="text-xs pointer-events-none">Click to upload thumbnail</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                />
+              </div>
+            )}
+          </div>
 
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={handleFileChange}
-        />
+          {/* Toolbar — Canva only */}
+          <div className="flex items-center border-t border-border bg-muted/20 px-1.5 h-9 gap-0.5 rounded-b-lg">
+            <button
+              type="button"
+              onClick={handleOpenInCanva}
+              disabled={canvaLoading}
+              className="flex items-center gap-1.5 rounded px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-50"
+              title={
+                !canvaConnected ? "Connect Canva in Settings first" :
+                hasDesign ? "Edit design in Canva" :
+                "Create thumbnail in Canva (1280×720)"
+              }
+            >
+              {canvaLoading
+                ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                : <Palette className="h-3.5 w-3.5" />
+              }
+              <span>{hasDesign ? "Edit in Canva" : "Open in Canva"}</span>
+              {!canvaLoading && <ExternalLink className="h-3 w-3 opacity-40" />}
+            </button>
+
+            {hasDesign && (
+              <>
+                <div className="flex-1" />
+                <button
+                  type="button"
+                  onClick={handleSyncFromCanva}
+                  disabled={syncing}
+                  className="flex items-center gap-1.5 rounded px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-50"
+                  title="Sync thumbnail from Canva"
+                >
+                  {syncing
+                    ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    : <RefreshCw className="h-3.5 w-3.5" />
+                  }
+                  <span>Sync</span>
+                </button>
+              </>
+            )}
+          </div>
+        </div>
 
         {/* Right column */}
         <div className="flex-1 min-w-0 flex flex-col gap-2">
@@ -256,38 +403,6 @@ export function ProjectHeader({ project, onUpdate }: ProjectHeaderProps) {
             })}
           </div>
 
-          {/* Notes section */}
-          <div className="pt-1 border-t border-border/50">
-            <button
-              type="button"
-              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-              onClick={() => setNotesOpen((v) => !v)}
-            >
-              <Pencil className="h-3 w-3" />
-              <span>Notes</span>
-              <ChevronDown
-                className={`h-3 w-3 transition-transform ${notesOpen ? "rotate-180" : ""}`}
-              />
-              {!notesOpen && notes && (
-                <span className="ml-1 truncate max-w-[200px] text-muted-foreground/70">
-                  {notes.split("\n")[0]}
-                </span>
-              )}
-              {!notesOpen && !notes && (
-                <span className="ml-1 text-muted-foreground/50">Add notes…</span>
-              )}
-            </button>
-
-            {notesOpen && (
-              <textarea
-                className="mt-2 w-full min-h-[80px] resize-y rounded-md border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-                placeholder="Competitors, tone, research notes…"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                onBlur={handleNotesBlur}
-              />
-            )}
-          </div>
         </div>
       </div>
     </div>

@@ -4,13 +4,7 @@ import { Badge } from "@/components/ui/badge"
 import { getChannelDetails, getChannelVideos } from "@/lib/youtube"
 import { ChannelVideoGrid } from "./_components/video-grid"
 import { FavoriteButton } from "../_components/favorite-button"
-
-function formatSubscriberCount(count: string): string {
-  const n = parseInt(count)
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
-  if (n >= 1_000) return `${Math.round(n / 1_000)}K`
-  return count
-}
+import { formatCount } from "@/lib/utils"
 
 function computeUploadCadence(videos: { publishedAt: string }[]): string {
   if (videos.length < 2) return "Unknown cadence"
@@ -90,7 +84,7 @@ export default async function ChannelProfilePage({
             {subscriberCount && (
               <Badge variant="secondary" className="gap-1.5">
                 <Users className="h-3 w-3" />
-                {formatSubscriberCount(subscriberCount)} subscribers
+                {formatCount(parseInt(subscriberCount))} subscribers
               </Badge>
             )}
             {videoCount && (

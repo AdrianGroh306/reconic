@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
   const channelContext = await getChannelContext()
 
   const result = streamObject({
-    model: google("gemini-2.5-flash"),
+    model: google("gemini-3.1-flash-lite-preview"),
     schema: suggestionsSchema,
     prompt: `You are a YouTube content strategist specializing in longform video (${targetDuration}-minute target, ~${targetWords} words).
 

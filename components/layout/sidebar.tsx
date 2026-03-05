@@ -21,9 +21,12 @@ const navItems = [
 
 function ThemeToggle() {
   const { theme, setTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => setMounted(true), [])
 
   const next = theme === "dark" ? "light" : theme === "light" ? "system" : "dark"
-  const Icon = theme === "dark" ? Moon : theme === "light" ? Sun : Monitor
+  const Icon = !mounted ? Monitor : theme === "dark" ? Moon : theme === "light" ? Sun : Monitor
 
   return (
     <Button
@@ -31,7 +34,7 @@ function ThemeToggle() {
       size="icon"
       className="h-8 w-8 shrink-0"
       onClick={() => setTheme(next)}
-      title={`Theme: ${theme}`}
+      title={mounted ? `Theme: ${theme}` : undefined}
     >
       <Icon className="h-4 w-4" />
     </Button>

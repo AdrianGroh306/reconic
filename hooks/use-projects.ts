@@ -20,7 +20,6 @@ export function useProjects() {
   return useQuery<Project[]>({
     queryKey: ["projects"],
     queryFn: fetchProjects,
-    staleTime: 30 * 1000,
   })
 }
 
@@ -28,6 +27,5 @@ export function useProject(id: string) {
   return useQuery<Project | null>({
     queryKey: ["project", id],
     queryFn: () => fetchProject(id),
-    staleTime: 30 * 1000,
   })
 }

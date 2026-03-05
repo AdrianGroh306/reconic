@@ -7,13 +7,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { fetchFavoritedChannels, addFavoritedChannel, deleteFavoritedChannel } from "@/lib/channels"
 import type { YouTubeChannelResult } from "@/lib/youtube"
-
-function formatSubscriberCount(count: string): string {
-  const n = parseInt(count)
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
-  if (n >= 1_000) return `${Math.floor(n / 1_000)}K`
-  return String(n)
-}
+import { formatCount } from "@/lib/utils"
 
 export function ChannelCard({
   channel,
@@ -82,7 +76,7 @@ export function ChannelCard({
             <p className="font-medium">{channel.title}</p>
             {channel.subscriberCount && (
               <p className="text-xs text-muted-foreground">
-                {formatSubscriberCount(channel.subscriberCount)} subscribers
+                {formatCount(parseInt(channel.subscriberCount))} subscribers
               </p>
             )}
             <p className="mt-1 text-sm text-muted-foreground line-clamp-3">
