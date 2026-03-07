@@ -69,6 +69,10 @@ export async function DELETE(
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   const { id } = await params
+
+  // Clean up thumbnail from storage (ignore errors — file may not exist)
+  await supabase.storage.from("thumbnails").remove([`${user.id}/${id}.jpg`])
+
   const { error } = await supabase
     .from("projects")
     .delete()

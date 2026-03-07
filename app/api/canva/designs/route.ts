@@ -43,6 +43,8 @@ export async function POST(request: NextRequest) {
         token_expires_at: new Date(Date.now() + tokens.expires_in * 1000).toISOString(),
         updated_at: new Date().toISOString(),
       }).eq("user_id", user.id)
+    } else {
+      return NextResponse.json({ error: "canva_reconnect_required" }, { status: 401 })
     }
   }
 
@@ -65,6 +67,12 @@ export async function POST(request: NextRequest) {
   if (!res.ok) {
     const err = await res.text()
     console.error("Canva create design failed:", err)
+    try {
+      const body = JSON.parse(err) as { code?: string }
+      if (body.code === "invalid_access_token" || body.code === "unauthorized") {
+        return NextResponse.json({ error: "canva_reconnect_required" }, { status: 401 })
+      }
+    } catch { /* not JSON */ }
     return NextResponse.json({ error: "Failed to create Canva design" }, { status: 500 })
   }
 

@@ -3,16 +3,8 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useQueryClient } from "@tanstack/react-query"
-import { Plus, FolderOpen, MoreVertical, Trash2, ExternalLink, ImageIcon } from "lucide-react"
+import { Plus, FolderOpen } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import {
   Dialog,
   DialogContent,
@@ -21,9 +13,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { removeProject, computeStatus, STATUS_CONFIG, type Project } from "@/lib/projects"
+import { removeProject, type Project } from "@/lib/projects"
 import { useProjects } from "@/hooks/use-projects"
-import { Badge } from "@/components/ui/badge"
+import { ProjectCard } from "@/components/projects/project-card"
 import { NewProjectDialog } from "./_components/new-project-dialog"
 
 export default function ProjectsPage() {
@@ -73,84 +65,11 @@ export default function ProjectsPage() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {projects.map((project) => (
-            <Card
+            <ProjectCard
               key={project.id}
-              className="cursor-pointer overflow-hidden pt-0 gap-3 transition-shadow hover:shadow-md"
-              onClick={() => router.push(`/projects/${project.id}`)}
-            >
-              <div className="aspect-video w-full bg-muted relative overflow-hidden">
-                {project.thumbnail ? (
-                  <img
-                    src={project.thumbnail}
-                    alt={project.title}
-                    className="absolute inset-0 h-full w-full object-cover"
-                  />
-                ) : (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <ImageIcon className="h-8 w-8 text-muted-foreground/30" />
-                  </div>
-                )}
-                <div className="absolute bottom-2 right-2">
-                  {(() => {
-                    const status = computeStatus(project)
-                    const cfg = STATUS_CONFIG[status]
-                    return (
-                      <Badge variant="outline" className={`text-xs font-medium ${cfg.className} backdrop-blur-sm`}>
-                        {cfg.label}
-                      </Badge>
-                    )
-                  })()}
-                </div>
-              </div>
-
-              <CardHeader className="pb-2">
-                <div className="flex items-start justify-between gap-2">
-                  <CardTitle className="text-base leading-snug">{project.chosenTitle ?? project.title}</CardTitle>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger
-                      render={
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 shrink-0 text-muted-foreground"
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                      }
-                    >
-                      <MoreVertical className="h-4 w-4" />
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                      <DropdownMenuItem
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          router.push(`/projects/${project.id}`)
-                        }}
-                      >
-                        <ExternalLink className="mr-2 h-4 w-4" />
-                        Open
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        className="text-destructive focus:text-destructive"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setDeleteTarget(project.id)
-                        }}
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-                <CardDescription className="line-clamp-1">{project.topic}</CardDescription>
-              </CardHeader>
-              {project.description && (
-                <CardContent className="pt-0">
-                  <p className="text-sm text-muted-foreground line-clamp-2">{project.description}</p>
-                </CardContent>
-              )}
-            </Card>
+              project={project}
+              onDelete={setDeleteTarget}
+            />
           ))}
         </div>
       )}

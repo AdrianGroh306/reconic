@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { useQueryClient } from "@tanstack/react-query"
 import { Search, Sparkles, Youtube, Clapperboard } from "lucide-react"
@@ -19,6 +20,7 @@ export default function ProjectDetailPage() {
   const id = params.id as string
 
   const { data: project, isLoading } = useProject(id)
+  const [headerCollapsed, setHeaderCollapsed] = useState(false)
 
   if (isLoading) return (
     <div className="space-y-6 animate-pulse">
@@ -56,7 +58,12 @@ export default function ProjectDetailPage() {
 
   return (
     <div className="space-y-6">
-      <ProjectHeader project={project} onUpdate={handleProjectUpdate} />
+      <ProjectHeader
+        project={project}
+        onUpdate={handleProjectUpdate}
+        collapsed={headerCollapsed}
+        onToggleCollapse={() => setHeaderCollapsed((p) => !p)}
+      />
 
       <Tabs defaultValue="concept">
         <TabsList className="overflow-x-auto">

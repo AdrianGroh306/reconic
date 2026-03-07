@@ -4,55 +4,14 @@ import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useQueryClient } from "@tanstack/react-query"
-import { ImageIcon, Plus } from "lucide-react"
-import { type Project, computeStatus, STATUS_CONFIG } from "@/lib/projects"
+import { Plus } from "lucide-react"
+import { type Project } from "@/lib/projects"
 import { useProjects } from "@/hooks/use-projects"
 import { Button, buttonVariants } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Card, CardHeader } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
+import { ProjectCard } from "@/components/projects/project-card"
 import { NewProjectDialog } from "@/app/(app)/projects/_components/new-project-dialog"
-
-function ProjectCard({ project }: { project: Project }) {
-  const router = useRouter()
-  const status = computeStatus(project)
-  const cfg = STATUS_CONFIG[status]
-  return (
-    <Card
-      className="cursor-pointer overflow-hidden pt-0 gap-3 transition-shadow hover:shadow-md"
-      onClick={() => router.push(`/projects/${project.id}`)}
-    >
-      <div className="aspect-video w-full bg-muted relative overflow-hidden">
-        {project.thumbnail ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={project.thumbnail}
-            alt={project.title}
-            className="absolute inset-0 h-full w-full object-cover"
-          />
-        ) : (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <ImageIcon className="h-8 w-8 text-muted-foreground/30" />
-          </div>
-        )}
-        <div className="absolute bottom-2 right-2">
-          <Badge variant="outline" className={`text-xs font-medium ${cfg.className} backdrop-blur-sm`}>
-            {cfg.label}
-          </Badge>
-        </div>
-      </div>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-base leading-snug">{project.chosenTitle ?? project.title}</CardTitle>
-        <CardDescription className="line-clamp-1">{project.topic}</CardDescription>
-      </CardHeader>
-      {project.description && (
-        <CardContent className="pt-0">
-          <p className="text-sm text-muted-foreground line-clamp-2">{project.description}</p>
-        </CardContent>
-      )}
-    </Card>
-  )
-}
 
 export function ProjectsSection() {
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -110,6 +69,7 @@ export function ProjectsSection() {
           {projects.map((p) => (
             <ProjectCard key={p.id} project={p} />
           ))}
+
         </div>
       )}
 

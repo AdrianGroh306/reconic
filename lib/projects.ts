@@ -1,5 +1,4 @@
-export type ProjectStatus = 'scripted' | 'filming' | 'editing' | 'published'
-export type ProjectStatusLabel = 'published' | 'editing' | 'filming' | 'scripted' | 'idea'
+export type ProjectStatus = 'idea' | 'scripted' | 'filming' | 'editing' | 'published'
 
 export type AiSuggestions = {
   titles?: string[]
@@ -30,7 +29,7 @@ export type Project = {
   canvaDesignId?: string
 }
 
-export const STATUS_CONFIG: Record<ProjectStatusLabel, { label: string; className: string }> = {
+export const STATUS_CONFIG: Record<ProjectStatus, { label: string; className: string }> = {
   idea:      { label: 'Idea',      className: 'bg-muted text-muted-foreground border-muted' },
   scripted:  { label: 'Scripted',  className: 'bg-blue-500/10 text-blue-600 border-blue-500/30 dark:text-blue-400' },
   filming:   { label: 'Filming',   className: 'bg-yellow-500/10 text-yellow-700 border-yellow-500/30 dark:text-yellow-400' },
@@ -38,7 +37,7 @@ export const STATUS_CONFIG: Record<ProjectStatusLabel, { label: string; classNam
   published: { label: 'Published', className: 'bg-green-500/10 text-green-700 border-green-500/30 dark:text-green-500' },
 }
 
-export function computeStatus(project: Project): ProjectStatusLabel {
+export function computeStatus(project: Project): ProjectStatus {
   if (project.status) return project.status
   const script = project.script ?? ''
   const wordCount = script.trim().split(/\s+/).filter(Boolean).length
